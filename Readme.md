@@ -188,21 +188,28 @@ of just the accounts you follow, with the recommended/ranked posts dropped.
 **Long-press the Home tab** (the house icon at the bottom-left of Instagram's
 main tab bar). A full-screen, scrollable settings page opens — Material 3
 Expressive, monochrome, and padded to fit around system bars and cutouts on any
-device — with:
+device. It starts on an overview: one row per section, with Instagram's own
+outline icon and a one-line summary of that section's current state (for
+example "3 of 10 hidden"). Tapping a row opens the section's page in the same
+window, with a back arrow; Back returns to the overview. The sections are:
 
 - **Blocked surfaces** — toggles for Home Feed, Explore, Reels, Stories,
   Suggested accounts, Ads, Instants, and Notes.
 - **Navigation bar** — show or hide each bottom-bar icon (Search, Reels,
-  Create, Messages, Profile) independently of the content blocks. Home always
+  Create, Messages, Profile) independently of the content blocks, with a live
+  preview of the bar above the toggles. A toggle for a tab your Instagram build
+  does not have (451 has no Create tab) is greyed out. Home always
   stays, since long-pressing it is how you get back here. A swipe that would
   land on a hidden tab carries straight on to the next visible one, so a hidden
   section stays hidden instead of being one flick away.
 - **Feed** — *Following feed only*: restrict the Home Feed to accounts you
   follow (chronological), instead of the recommended feed. Has effect only when
   the Home Feed is left unblocked.
-- **Display** — *Force dark (disable HDR)* (on by default): stops Instagram
+- **Display and popups** — *Force dark (disable HDR)* (on by default): stops Instagram
   forcing its window into HDR mode, which lifts the black floor and washes out
   the dark UI on HDR OLED screens. Turn it off to keep Instagram's HDR behaviour.
+  *Instagram popups* (on by default) drops Instagram's own toasts, such as the
+  "Couldn't refresh feed" message a blocked surface makes it raise.
 - **Landing page** — choose which surface the app jumps to on cold start
   (Home feed, Search, Direct messages, or Profile). A surface whose navigation
   icon is hidden can't be picked, and stops being used if you hide it later:
@@ -215,7 +222,7 @@ device — with:
   carries on in a notification — then hands it to Android's installer. No
   browser, no manual download. Turn the check off here if you'd rather look
   yourself.
-- **Donate** — opens the project's [GitHub Sponsors](https://github.com/sponsors/jean-voila) page.
+- **Support** — opens the project's [GitHub Sponsors](https://github.com/sponsors/jean-voila) page.
 - **Permanent lock** and **Done** buttons pinned at the bottom so they stay
   reachable on any screen size.
 

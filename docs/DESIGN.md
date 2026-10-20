@@ -131,6 +131,28 @@ cannot.
 the left, control on the right. **The whole row is the touch target**, not just the
 control.
 
+### Section pages
+
+Settings opens on an **overview**: one connected group per area, each row a section with
+Instagram's own outline icon leading, a one-line summary of its current state, and a
+chevron. Tapping a row swaps the column for that section's page inside the same window:
+a back arrow above the headline, the section's rows below, and the same pinned action row,
+so *Done* is always one tap away. Back (key or gesture) returns to the overview rather
+than closing settings.
+
+A section page may open with a **preview** of what its toggles change: the Navigation bar
+page draws the bar's icons in Instagram's live order and redraws them as the switches
+move. A toggle whose target does not exist in this Instagram build (451 has no Create
+tab) is shown disabled.
+
+### Icons
+
+There is still no `res/`, but Instagram ships its own icon set, so Feurstagram borrows
+it: `Settings.igIcon(context, tint, names...)` loads the first of the named drawables
+(`instagram_eye_off_pano_outline_24`, ...) from the host app and tints it. The icons then
+match the rest of Instagram, and a name that disappears in a later build only drops the
+icon. Leading icons are 24dp, `ON_SURFACE`; chevrons 20dp, `ON_SURFACE_VARIANT`.
+
 ### Switches
 
 `android.widget.Switch`, tinted. One trap: **the platform track drawable is

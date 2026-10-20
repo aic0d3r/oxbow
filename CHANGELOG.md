@@ -4,7 +4,15 @@ All notable changes to Feurstagram should be documented in this file.
 
 ## Unreleased
 
-Nothing yet.
+### Changed
+- **Settings open on an overview of sections.** The settings page used to be one long
+  list. It now opens on an overview with one row per section (Blocked surfaces,
+  Navigation bar, Feed, Landing page, Display and popups, Updates, Support), each with
+  Instagram's own outline icon and a summary of its current state. A row opens that
+  section's page in the same window, with a back arrow; Back returns to the overview.
+  Permanent lock and Done stay pinned on every page. The Navigation bar page shows a
+  live preview of the bar and greys out toggles for tabs the running Instagram build
+  does not have. No setting, key or default changed.
 
 ## v451-0-0-20-80
 
