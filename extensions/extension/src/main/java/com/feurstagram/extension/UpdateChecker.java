@@ -1,6 +1,8 @@
 package com.feurstagram.extension;
 
 import android.app.Dialog;
+import android.app.Activity;
+import android.app.Application;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -18,10 +20,12 @@ import android.graphics.drawable.Drawable;
 import android.graphics.drawable.LayerDrawable;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.TypedValue;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -41,10 +45,15 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Scanner;
+import java.util.Set;
+import java.util.Collections;
+import java.util.WeakHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Checks GitHub for a newer Feurstagram release and, if found, shows what changed
@@ -77,7 +86,10 @@ public final class UpdateChecker implements Runnable {
     /** Where the download lands (app-specific external dir, no permission needed). */
     private static final String UPDATE_FILE_NAME = "feurstagram-update.apk";
 
-    private static boolean checked;
+    private static boolean launchWatcherInstalled;
+    private static final AtomicBoolean automaticCheckRunning = new AtomicBoolean();
+    private static WeakReference<Activity> foregroundActivity = new WeakReference<>(null);
+    private static WeakReference<Dialog> availablePrompt = new WeakReference<>(null);
     private static boolean whatsNewChecked;
 
     /**
@@ -97,12 +109,61 @@ public final class UpdateChecker implements Runnable {
         this.manual = manual;
     }
 
-    /** Kick off a one-shot background check if enabled. Runs at most once per process. */
+    /** Install launch observation once, including returns to a still-running app. */
     public static void check(Context context) {
-        if (context == null || checked) return;
-        checked = true;
-        if (!Config.isAutoUpdateEnabled()) return;
-        new Thread(new UpdateChecker(context, false)).start();
+        if (!(context instanceof Activity) || launchWatcherInstalled) return;
+        Activity activity = (Activity) context;
+        launchWatcherInstalled = true;
+        foregroundActivity = new WeakReference<>(activity);
+        activity.getApplication().registerActivityLifecycleCallbacks(new LaunchWatcher(activity));
+        checkAutomatically(activity);
+    }
+
+    private static void checkAutomatically(Activity activity) {
+        if (!Config.isAutoUpdateEnabled() || !automaticCheckRunning.compareAndSet(false, true)) return;
+        if (DebugBridge.isNetworkTraceEnabled()) Log.i("FeurUpdate", "automatic check started");
+        new Thread(new UpdateChecker(activity, false), "FeurStagram-update-check").start();
+    }
+
+    private static final class LaunchWatcher implements Application.ActivityLifecycleCallbacks {
+        private final Set<Activity> started = Collections.newSetFromMap(new WeakHashMap<>());
+        private boolean foreground = true;
+        private boolean checkOnResume;
+
+        LaunchWatcher(Activity initial) {
+            // The tab-bar hook may run before or after the first onStart. A set
+            // avoids counting that same activity twice in either ordering.
+            started.add(initial);
+        }
+
+        @Override public void onActivityStarted(Activity activity) {
+            if (!foreground && started.isEmpty()) {
+                foreground = true;
+                checkOnResume = true;
+            }
+            started.add(activity);
+        }
+
+        @Override public void onActivityResumed(Activity activity) {
+            foregroundActivity = new WeakReference<>(activity);
+            if (checkOnResume) {
+                checkOnResume = false;
+                checkAutomatically(activity);
+            }
+        }
+
+        @Override public void onActivityPaused(Activity activity) {
+            if (foregroundActivity.get() == activity) foregroundActivity.clear();
+        }
+
+        @Override public void onActivityStopped(Activity activity) {
+            started.remove(activity);
+            if (started.isEmpty() && !activity.isChangingConfigurations()) foreground = false;
+        }
+
+        @Override public void onActivityDestroyed(Activity activity) { started.remove(activity); }
+        @Override public void onActivityCreated(Activity activity, Bundle state) {}
+        @Override public void onActivitySaveInstanceState(Activity activity, Bundle state) {}
     }
 
     /**
@@ -133,7 +194,13 @@ public final class UpdateChecker implements Runnable {
                 final String apkUrl = extractApkUrl(body, isCloneBuild());
                 final String notes = extractReleaseBody(body);
                 final long size = extractApkSize(body, isCloneBuild());
-                ui.post(() -> showPrompt(context, new Release(tag, notes, apkUrl, size), installed));
+                ui.post(() -> {
+                    Context target = manual ? context : foregroundActivity.get();
+                    if (target instanceof Activity
+                            && !((Activity) target).isFinishing() && !((Activity) target).isDestroyed()) {
+                        showPrompt(target, new Release(tag, notes, apkUrl, size), installed);
+                    }
+                });
             } else if (manual) {
                 ui.post(() -> toast("FeurStagram is up to date (" + installed + ")"));
             }
@@ -141,6 +208,11 @@ public final class UpdateChecker implements Runnable {
             // Network/parse failures are non-fatal: silent for auto checks,
             // reported for manual ones.
             if (manual) ui.post(() -> toast("Update check failed"));
+        } finally {
+            if (!manual) {
+                automaticCheckRunning.set(false);
+                if (DebugBridge.isNetworkTraceEnabled()) Log.i("FeurUpdate", "automatic check finished");
+            }
         }
     }
 
@@ -148,6 +220,8 @@ public final class UpdateChecker implements Runnable {
         HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
         connection.setRequestProperty("User-Agent", USER_AGENT);
         connection.setRequestProperty("Accept", "application/vnd.github+json");
+        connection.setUseCaches(false);
+        connection.setRequestProperty("Cache-Control", "no-cache");
         connection.setConnectTimeout(10000);
         connection.setReadTimeout(10000);
         try (InputStream input = connection.getInputStream();
@@ -464,11 +538,16 @@ public final class UpdateChecker implements Runnable {
 
     private static void showPrompt(Context context, Release release, String installed) {
         try {
+            Dialog existing = availablePrompt.get();
+            if (updateInFlight || (existing != null && existing.isShowing())) return;
             Settings.Page page = Settings.newPage(context);
             Settings.addPageTitle(page, "Update available",
                     "FeurStagram " + release.tag + "  ·  you have " + installed);
 
             final Dialog dialog = Settings.newPageDialog(context, page.root);
+            dialog.setOnDismissListener(d -> {
+                if (availablePrompt.get() == dialog) availablePrompt.clear();
+            });
 
             if (release.notes != null) {
                 LinearLayout notes = new LinearLayout(context);
@@ -519,6 +598,7 @@ public final class UpdateChecker implements Runnable {
             page.addAction(update);
 
             dialog.show();
+            availablePrompt = new WeakReference<>(dialog);
         } catch (Throwable ignored) {
         }
     }

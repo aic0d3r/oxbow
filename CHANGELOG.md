@@ -4,7 +4,21 @@ All notable changes to Feurstagram should be documented in this file.
 
 ## Unreleased
 
+Nothing yet.
+
+## v452-0-0-48-64
+
+### Added
+- **Docker build environment.** Build with JDK 21 and the Android SDK in a
+  container. The documented commands select Linux amd64 so Android's x86-64
+  build tools also run on Apple Silicon with container emulation enabled.
+
 ### Changed
+- **Auto-updater improvements.**
+- **Material 3 Expressive switches.** Settings now use animated switches matching
+  the rest of the interface, including their selected, pressed and disabled states.
+- Updated to Instagram 452.0.0.48.64. The English and French compatibility guides
+  and their modification dates now match this base version.
 - **Settings open on an overview of sections.** The settings page used to be one long
   list. It now opens on an overview with one row per section (Blocked surfaces,
   Navigation bar, Feed, Landing page, Display and popups, Updates, Support), each with
@@ -15,6 +29,14 @@ All notable changes to Feurstagram should be documented in this file.
   does not have. No setting, key or default changed.
 
 ### Fixed
+- **Settings close with an animation.** Android Back now reverses the settings
+  opening transition before closing the overview. Back from a section still
+  returns to the overview.
+- **Sponsored-media filtering works on Instagram 452.** The media parser now
+  delegates to a codec with two field-dispatch paths instead of the old static
+  dispatcher. Follow the wrapper's codec call by signature and hook field-name
+  reads in both paths, including the direct parser used for carousel children.
+  The previous parser hook remains available for older Instagram builds.
 - **Suggested accounts no longer fill the story tray.** Instagram mixes suggested
   accounts into the home story tray as ordinary entries of the tray response (typed
   `suggested_user`), so blocking the suggestion endpoints did not catch them: on a test

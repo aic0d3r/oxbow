@@ -58,7 +58,7 @@ public final class DebugBridge {
     private static final String LANDING_KEY = "landing_page";
 
     private static final String[] ACTIONS = {
-            "SET", "GET", "DUMP", "NAV", "TRACE", "UPDATE", "WHATSNEW", "RESET", "RESTART", "SETTINGS", "PING",
+            "SET", "GET", "REMOVE", "DUMP", "NAV", "TRACE", "UPDATE", "WHATSNEW", "RESET", "RESTART", "SETTINGS", "PING",
     };
 
     private static boolean sInstalled;
@@ -148,6 +148,14 @@ public final class DebugBridge {
                 return set(intent);
             case "GET":
                 return get(intent);
+            case "REMOVE":
+                String key = intent.getStringExtra("key");
+                if (key == null) return "ERROR missing --es key";
+                SharedPreferences store = prefs();
+                if (store == null) return "ERROR no context";
+                store.edit().remove(key).apply();
+                Config.setNeedsRestart();
+                return key + "=<unset>";
             case "DUMP":
                 return dump();
             case "NAV":

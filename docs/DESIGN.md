@@ -155,16 +155,16 @@ icon. Leading icons are 24dp, `ON_SURFACE`; chevrons 20dp, `ON_SURFACE_VARIANT`.
 
 ### Switches
 
-`android.widget.Switch`, tinted. One trap: **the platform track drawable is
-alpha-blended**, so tinting the track white produces the grey M3 track — the *thumb* is
-what carries the accent.
+`ExpressiveSwitch` draws the Material 3 control in code, with no bundled resources:
+a 52 × 32dp track with a 2dp outline, a 16dp unchecked handle that grows to 24dp
+when checked and 28dp when pressed, and a check mark in the selected handle. The
+track is solid `PRIMARY` when checked, with an `ON_PRIMARY` handle; the unchecked
+track uses `SURFACE_CONTAINER_HIGH` with an `OUTLINE` border and handle.
 
-```java
-toggle.setTrackTintList(buildStateList(PRIMARY, OUTLINE_VARIANT));  // checked, unchecked
-toggle.setThumbTintList(buildStateList(PRIMARY, OUTLINE));
-```
-
-Tinting the thumb dark instead makes the "on" state look like a hole punched in the track.
+The control animates its colour, position and handle size, follows RTL layout,
+and exposes the native switch role and checked state to accessibility. Its
+64 × 48dp view preserves a comfortable target, and the whole row remains tappable.
+Disabled rows still use the shared 0.38 alpha rule.
 
 ### Single choice
 

@@ -4,7 +4,10 @@ import app.morphe.patcher.Fingerprint
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.extensions.InstructionExtensions.instructions
 import app.morphe.patcher.patch.bytecodePatch
+import app.morphe.patcher.patch.PatchException
+import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
@@ -61,6 +64,47 @@ internal object MediaParseFromJsonFingerprint : Fingerprint(
         method.implementation?.instructions?.any { it.isMediaFieldDispatch() } == true
     },
 )
+
+// Instagram 452 moved field dispatch into a codec called by the error-reporting
+// wrapper. Follow that call by its signature instead of an obfuscated name.
+internal object MediaParseWrapperFingerprint : Fingerprint(
+    returnType = MEDIA_TYPE,
+    strings = listOf("Media:null_pointer_exception", "Media:array_out_of_bounds_exception"),
+    custom = { method, _ ->
+        method.implementation?.instructions?.any { it.isMediaCodecCall(method) } == true
+    },
+)
+
+private fun Instruction.isMediaCodecCall(wrapper: Method): Boolean {
+    if (opcode != Opcode.INVOKE_VIRTUAL) return false
+    val reference = (this as ReferenceInstruction).reference as MethodReference
+    val parserType = wrapper.parameterTypes.firstOrNull()?.toString() ?: return false
+    return reference.parameterTypes.map { it.toString() } == listOf(
+        "Lcom/instagram/common/session/UserSession;", parserType, "Z",
+    ) && reference.returnType.startsWith("L")
+}
+
+/** Both codec paths read the field name just before its hash dispatch. */
+private fun MutableMethod.hookMediaFieldHash() {
+    val hash = instructions.firstOrNull {
+        val reference = (it as? ReferenceInstruction)?.reference as? MethodReference
+        it.opcode == Opcode.INVOKE_VIRTUAL && reference?.definingClass == "Ljava/lang/String;" &&
+            reference.name == "hashCode"
+    } ?: throw PatchException("Media codec has no field-name hash dispatch")
+    val keyRegister = (hash as FiveRegisterInstruction).registerC
+    val keyLoad = instructions.take(hash.location.index).lastOrNull {
+        it.opcode == Opcode.MOVE_RESULT_OBJECT &&
+            (it as OneRegisterInstruction).registerA == keyRegister
+    } ?: throw PatchException("Media codec field-name load changed")
+    if (hash.location.index - keyLoad.location.index > 3) {
+        throw PatchException("Media codec field-name load is too far from hash dispatch")
+    }
+    addInstructions(
+        keyLoad.location.index + 1,
+        "invoke-static/range { v$keyRegister .. v$keyRegister }, " +
+            "$BLOCK_CLASS->onMediaField(Ljava/lang/String;)V",
+    )
+}
 
 /** The call that hands one field name to the per-field dispatcher: static (parser, String, Map)V. */
 private fun Instruction.isMediaFieldDispatch(): Boolean {
@@ -139,7 +183,8 @@ val feedItemFilterPatch = bytecodePatch(
 
         // Hand every field name of every media parsed to Block.onMediaField, which
         // is how it learns that the media is an ad (see Block.AD_MEDIA_FIELDS).
-        MediaParseFromJsonFingerprint.method.apply {
+        val legacyParser = MediaParseFromJsonFingerprint.methodOrNull
+        if (legacyParser != null) legacyParser.apply {
             val dispatch = instructions.first { it.isMediaFieldDispatch() }
             val keyRegister = (dispatch as FiveRegisterInstruction).registerD
             addInstructions(
@@ -147,6 +192,22 @@ val feedItemFilterPatch = bytecodePatch(
                 "invoke-static/range { v$keyRegister .. v$keyRegister }, " +
                     "$BLOCK_CLASS->onMediaField(Ljava/lang/String;)V",
             )
+        } else {
+            val wrapper = MediaParseWrapperFingerprint.method
+            val reference = (wrapper.instructions.first { it.isMediaCodecCall(wrapper) }
+                as ReferenceInstruction).reference as MethodReference
+            Fingerprint(
+                definingClass = reference.definingClass,
+                name = reference.name,
+                parameters = reference.parameterTypes.map { it.toString() },
+                returnType = reference.returnType,
+            ).method.hookMediaFieldHash()
+            // The same codec also has a direct model parser (including carousel
+            // children); it does not go through the wrapper's map-building path.
+            Fingerprint(
+                definingClass = reference.definingClass,
+                name = "unsafeParseFromJson",
+            ).method.hookMediaFieldHash()
         }
     }
 }

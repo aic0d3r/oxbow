@@ -3,12 +3,15 @@
 # Usage:
 #   1. Put the stock Instagram APK/BUNDLE next to build.sh (e.g. instagram.apkm)
 #   2. Drop the Morphe CLI jar into tools/ (build.sh requires it)
-#   3. docker build -t feurstagram-build .
-#   4. docker run --rm -v "$PWD:/work" -v feur-gradle:/root/.gradle \
+#   3. docker build --platform linux/amd64 -t feurstagram-build .
+#   4. docker run --rm --platform linux/amd64 \
+#        -v "$PWD:/work" -v feur-gradle:/root/.gradle \
 #        -e GITHUB_TOKEN=<classic PAT with read:packages> -e GITHUB_ACTOR=<you> \
 #        feurstagram-build ./build.sh instagram.apkm --clone
 #
 # The result lands at ./feurstagram.apk.
+# Android's Linux SDK tools are x86-64 binaries. On Apple Silicon, enable
+# amd64 emulation in the container runtime and keep the platform flags above.
 #
 # Resource use: ~2-4 GB disk (JDK, SDK, Gradle cache), 4 GB RAM recommended
 # for the dex-patching step.

@@ -2,6 +2,7 @@ package com.feurstagram.extension;
 
 import android.app.Activity;
 import android.app.Dialog;
+import android.animation.ValueAnimator;
 import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.Intent;
@@ -23,13 +24,13 @@ import android.view.WindowInsets;
 import android.view.WindowInsetsController;
 import android.view.WindowManager;
 import android.view.animation.DecelerateInterpolator;
+import android.view.animation.AccelerateInterpolator;
 import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RadioButton;
 import android.widget.ScrollView;
-import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -140,6 +141,7 @@ public final class Settings {
             SettingsDialog dialog = new SettingsDialog(context);
             dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
             View content = buildContent(context, dialog);
+            dialog.page = content;
             dialog.setContentView(content);
 
             // Opening animation: the page rises and fades in over Instagram. The window
@@ -402,6 +404,8 @@ public final class Settings {
     private static final class SettingsDialog extends Dialog {
         /** Set while a section page is open. */
         Runnable onBack;
+        View page;
+        private boolean closing;
 
         SettingsDialog(Context context) {
             super(context, android.R.style.Theme_Material_NoActionBar);
@@ -414,7 +418,26 @@ public final class Settings {
                 onBack.run();
                 return;
             }
-            super.onBackPressed();
+            cancel();
+        }
+
+        @Override
+        public void cancel() {
+            if (closing) return;
+            if (page == null || !isShowing() || !ValueAnimator.areAnimatorsEnabled()) {
+                super.cancel();
+                return;
+            }
+            closing = true;
+            page.animate().cancel();
+            page.animate().alpha(0f).translationY(dp(getContext(), OPEN_RISE_DP))
+                    .setDuration(200L)
+                    .setInterpolator(new AccelerateInterpolator(1.5f))
+                    .withEndAction(this::finishCancel).start();
+        }
+
+        private void finishCancel() {
+            super.cancel();
         }
     }
 
@@ -1199,13 +1222,9 @@ public final class Settings {
                                boolean value, Runnable onChanged) {
         LinearLayout row = makeRow(context, parent, label, supportText(key));
 
-        Switch toggle = new Switch(context);
+        ExpressiveSwitch toggle = new ExpressiveSwitch(context);
         toggle.setChecked(value);
-        toggle.setShowText(false);
-        // The platform track drawable is alpha-blended, so tinting it white gives
-        // the grey M3 track; the thumb is what carries the accent.
-        toggle.setTrackTintList(buildStateList(PRIMARY, OUTLINE_VARIANT));
-        toggle.setThumbTintList(buildStateList(PRIMARY, OUTLINE));
+        toggle.setContentDescription(label);
         toggle.setOnCheckedChangeListener((btn, isChecked) -> {
             // Hardcore: a frozen surface cannot be revealed; snap it back to hidden.
             if (Config.isHardcoreMode() && Config.isLockable(key)
