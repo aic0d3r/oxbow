@@ -1,15 +1,15 @@
-# Contributing to Feurstagram
+# Contributing to Oxbow
 
-Thanks for considering contributing to Feurstagram.
+Thanks for considering contributing to Oxbow.
 
-Feurstagram aims to make Instagram less addictive while keeping the useful parts of the app.
+Oxbow aims to make Instagram less addictive while keeping the useful parts of the app. It's a fork of [FeurStagram](https://github.com/jean-voila/FeurStagram): if a bug also happens there, please report it upstream too.
 
 ## Ways to contribute
 
 You can help by:
 
 - reporting bugs with clear reproduction steps;
-- testing Feurstagram on different Android versions and devices;
+- testing Oxbow on different Android versions and devices;
 - improving documentation;
 - improving installation instructions;
 - updating patches for newer Instagram versions;
@@ -22,9 +22,9 @@ Please include:
 
 - your Android version;
 - your device model;
-- the Feurstagram version;
+- the Oxbow version;
 - the Instagram version used for patching, if relevant;
-- whether you installed the classic APK or clone APK;
+- how you installed it: `oxbow.apk`, `oxbow-clone.apk`, or patched with Morphe Manager;
 - steps to reproduce the issue;
 - screenshots or logs if useful.
 

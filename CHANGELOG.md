@@ -1,12 +1,36 @@
 # Changelog
 
-All notable changes to Feurstagram should be documented in this file.
+All notable changes to Oxbow are documented in this file. Oxbow is a fork of
+[FeurStagram](https://github.com/jean-voila/FeurStagram); its history before the fork is
+kept below, unchanged.
 
 ## Unreleased
 
 Nothing yet.
 
-## v452-0-0-48-64
+## Oxbow v452-0-0-48-64 (first release)
+
+### Added
+- **Downloads** of posts, carousel slides, videos, Reels, stories and highlights from a
+  native "Download" row in Instagram's `⋯` menus.
+- **HD profile pictures** by long-pressing an avatar on a profile.
+- **Ghost mode** (off by default): no story views, no read receipts, no typing indicator.
+- **Tracker-free links**: copied and shared links lose `igsh`, `utm_*`, `obrf` and other
+  tracking parameters.
+- **Comments off** (off by default) and **no endless scrolling**, both covered by the
+  permanent lock.
+- **Hide the Home tab**; settings then open from a long-press on Messages.
+- **Morphe Manager patch source**: patch Instagram yourself on your phone.
+
+### Changed
+- Renamed to Oxbow: app name, clone package `com.instagram.android.oxbow`, update
+  checks and signing key.
+
+---
+
+# FeurStagram history
+
+## FeurStagram v452-0-0-48-64
 
 ### Added
 - **Docker build environment.** Build with JDK 21 and the Android SDK in a
