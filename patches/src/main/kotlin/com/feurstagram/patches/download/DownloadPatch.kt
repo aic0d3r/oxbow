@@ -74,6 +74,15 @@ internal object NonOwnerOptionsWhitelistFingerprint : Fingerprint(
     },
 )
 
+// Any method of the story/highlight menu helper; only used to reach its class.
+internal object StoryOptionsHelperFingerprint : Fingerprint(
+    custom = { _, classDef -> classDef.originalName() == "ReelOptionsOverflowHelper" },
+)
+
+/** Smali p-register of parameter [index] of a static method (wide types take two). */
+private fun Method.pRegister(index: Int): Int =
+    parameterTypes.take(index).sumOf { if (it.toString() == "J" || it.toString() == "D") 2 else 1 }
+
 internal object LabelResFingerprint : Fingerprint(
     definingClass = DOWNLOAD_CLASS,
     name = "labelRes",
@@ -145,6 +154,69 @@ val downloadPatch = bytecodePatch(
             0,
             "const-string v0, \"${MediaCarouselGetterFingerprint.method.name}\"\nreturn-object v0",
         )
+
+        // 3. Stories and highlights: their sheet rows are labels, dispatched by label text.
+        val storyHelper = StoryOptionsHelperFingerprint.classDef
+        val storyType = storyHelper.type
+        var labelLists = 0
+        var dispatchers = 0
+        mutableClassDefBy(storyHelper).methods.forEach { method ->
+            if (!AccessFlags.STATIC.isSet(method.accessFlags) || method.implementation == null) return@forEach
+            val params = method.parameterTypes.map(CharSequence::toString)
+            val freeLocals = method.implementation!!.registerCount - method.pRegister(params.size)
+            when {
+                // Label list for someone else's story: CharSequence[] (helper).
+                method.returnType == "[Ljava/lang/CharSequence;" && params == listOf(storyType) -> {
+                    method.instructions.filter { it.opcode == Opcode.RETURN_OBJECT }.reversed().forEach { ret ->
+                        val reg = (ret as OneRegisterInstruction).registerA
+                        method.addInstructions(
+                            ret.location.index,
+                            """
+                                invoke-static { v$reg }, $DOWNLOAD_CLASS->addStoryItem([Ljava/lang/CharSequence;)[Ljava/lang/CharSequence;
+                                move-result-object v$reg
+                            """,
+                        )
+                    }
+                    labelLists++
+                }
+                // Row icon for a label: int (helper, CharSequence).
+                method.returnType == "I" && params == listOf(storyType, "Ljava/lang/CharSequence;") && freeLocals >= 1 -> {
+                    method.addInstructionsWithLabels(
+                        0,
+                        """
+                            move-object/from16 v0, p1
+                            invoke-static { v0 }, $DOWNLOAD_CLASS->storyIcon(Ljava/lang/CharSequence;)I
+                            move-result v0
+                            if-eqz v0, :instagram
+                            return v0
+                        """,
+                        ExternalLabel("instagram", method.getInstruction(0)),
+                    )
+                }
+                // Click dispatchers: void (..., helper, ..., CharSequence label).
+                method.returnType == "V" && params.lastOrNull() == "Ljava/lang/CharSequence;" &&
+                    storyType in params && freeLocals >= 2 -> {
+                    val helperP = method.pRegister(params.indexOf(storyType))
+                    val labelP = method.pRegister(params.size - 1)
+                    method.addInstructionsWithLabels(
+                        0,
+                        """
+                            move-object/from16 v0, p$helperP
+                            move-object/from16 v1, p$labelP
+                            invoke-static { v0, v1 }, $DOWNLOAD_CLASS->storyClick(Ljava/lang/Object;Ljava/lang/CharSequence;)Z
+                            move-result v0
+                            if-eqz v0, :instagram
+                            return-void
+                        """,
+                        ExternalLabel("instagram", method.getInstruction(0)),
+                    )
+                    dispatchers++
+                }
+            }
+        }
+        if (labelLists == 0 || dispatchers == 0) {
+            throw PatchException("Story menu hooks: $labelLists label lists, $dispatchers dispatchers")
+        }
 
         // 1b. Let it through the whitelist Instagram applies to other people's posts.
         NonOwnerOptionsWhitelistFingerprint.method.apply {

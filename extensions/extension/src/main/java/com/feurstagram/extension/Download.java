@@ -93,6 +93,74 @@ public final class Download {
         return "Download";
     }
 
+    // ---- Stories and highlights: their menu rows are plain labels, matched by text. ----
+
+    private static String storyLabel() {
+        try {
+            Context context = Config.getAppContext();
+            if (context != null && labelRes() != 0) return context.getString(labelRes());
+        } catch (Throwable ignored) {
+        }
+        return "Download";
+    }
+
+    private static boolean isStoryLabel(CharSequence label) {
+        return label != null && storyLabel().contentEquals(label);
+    }
+
+    /** Hook: appends our label to a story menu's label list. */
+    public static CharSequence[] addStoryItem(CharSequence[] labels) {
+        if (labels == null) return null;
+        for (CharSequence l : labels) if (isStoryLabel(l)) return labels;
+        CharSequence[] out = java.util.Arrays.copyOf(labels, labels.length + 1);
+        out[labels.length] = storyLabel();
+        return out;
+    }
+
+    /** Hook: Instagram's native download icon for our row, 0 to let Instagram decide. */
+    public static int storyIcon(CharSequence label) {
+        if (!isStoryLabel(label)) return 0;
+        try {
+            Class<?> option = Class.forName("com.instagram.feed.media.mediaoption.MediaOption$Option");
+            @SuppressWarnings({"unchecked", "rawtypes"})
+            Object download = Enum.valueOf((Class) option, "DOWNLOAD");
+            return option.getField("iconDrawable").getInt(download);
+        } catch (Throwable t) {
+            return 0;
+        }
+    }
+
+    /** Hook: true when the tapped story row is ours (then it is handled here). */
+    public static boolean storyClick(Object helper, CharSequence label) {
+        if (!isStoryLabel(label)) return false;
+        Context context = null;
+        Object media = null;
+        try {
+            for (Field f : helper.getClass().getDeclaredFields()) {
+                f.setAccessible(true);
+                if (context == null && android.app.Activity.class.isAssignableFrom(f.getType())) {
+                    context = (Context) f.get(helper);
+                } else if (media == null && f.getType().getName().equals("com.instagram.model.reels.ReelItem")) {
+                    Object item = f.get(helper);
+                    // The story's own media is ReelItem's final Media field.
+                    for (Field m : item == null ? new Field[0] : item.getClass().getDeclaredFields()) {
+                        if (m.getType().getName().equals("com.instagram.feed.media.Media")
+                                && java.lang.reflect.Modifier.isFinal(m.getModifiers())) {
+                            m.setAccessible(true);
+                            media = m.get(item);
+                        }
+                    }
+                }
+            }
+        } catch (Throwable t) {
+            Log.w(TAG, "story lookup failed", t);
+        }
+        if (context == null) context = Config.getAppContext();
+        if (media == null) toast(context, "Couldn't download this story");
+        else download(context, media, -1);
+        return true;
+    }
+
     /** Hook: true when the tapped overflow option is Instagram's native DOWNLOAD. */
     public static boolean isDownload(Object option) {
         return option instanceof Enum && "DOWNLOAD".equals(((Enum<?>) option).name());
