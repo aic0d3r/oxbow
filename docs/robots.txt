@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://jean-voila.github.io/FeurStagram/sitemap.xml
+Sitemap: https://aic0d3r.github.io/oxbow/sitemap.xml

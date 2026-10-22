@@ -1,29 +1,37 @@
 # Installation Guide
 
+Oxbow is a fork of [Feurstagram](https://github.com/jean-voila/FeurStagram) by Jean Herail (GPL-3.0).
+
 ## Option 1: Download a prebuilt APK
 
-Go to the latest GitHub Release and download one of the APK files.
+Go to the [latest GitHub release](https://github.com/aic0d3r/oxbow/releases/latest) and download one of the APK files.
 
-### Classic APK
+### oxbow.apk (classic)
 
-Use this if you want Feurstagram to replace your current Instagram app.
+Replaces your current Instagram app: it keeps Instagram's original package ID, so uninstall the official app first.
 
-### Clone APK
+### oxbow-clone.apk (clone)
 
-Use this if you want Feurstagram to be installed alongside the official Instagram app.
+Uses a different package ID, so it installs alongside the official Instagram app.
 
-## Option 2: Build it yourself
+## Option 2: Patch it yourself with Morphe Manager
+
+Install [Morphe Manager](https://morphe.software), add the source `github.com/aic0d3r/oxbow`
+(or open <https://morphe.software/add-source?github=aic0d3r/oxbow&name=Oxbow&app=com.instagram.android>),
+then patch an Instagram `.apkm` bundle. No prebuilt APK is downloaded; updates arrive through the Manager.
+
+## Option 3: Build it yourself
 
 If you prefer not to trust a prebuilt APK, follow the [build-from-source guide](BUILD_FROM_SOURCE.md).
 
 ## Recommended installation flow
 
-1. Choose classic APK or clone APK.
-2. Download the APK from the official GitHub Releases page.
-3. Check the release notes for the supported Instagram version.
+1. Choose oxbow.apk or oxbow-clone.apk.
+2. Download the APK from the official GitHub releases page.
+3. Check the release notes for the supported Instagram version (currently 452.0.0.48.64).
 4. Install the APK on your Android device.
 5. Log in through Instagram as usual.
-6. Long-press the Home tab to open Feurstagram settings.
+6. Long-press the Home tab to open Oxbow settings.
 7. Report issues on GitHub if something does not work.
 
 ## Troubleshooting

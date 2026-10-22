@@ -1,10 +1,10 @@
-// Shared by every Feurstagram page: loads the release list once (cached for the
+// Shared by every Oxbow page: loads the release list once (cached for the
 // session), fills in the total download count and points download buttons at the
 // latest APKs. Pages work without it: counts stay hidden, buttons keep their
 // "latest release" link.
 (function () {
-    var API = 'https://api.github.com/repos/jean-voila/FeurStagram/releases?per_page=100';
-    var CACHE_KEY = 'feurstagram-releases-v1';
+    var API = 'https://api.github.com/repos/aic0d3r/oxbow/releases?per_page=100';
+    var CACHE_KEY = 'oxbow-releases-v1';
     var CACHE_MS = 10 * 60 * 1000;
 
     function readCache() {
@@ -78,10 +78,10 @@
         document.querySelectorAll('[data-latest-tag]').forEach(function (el) { el.textContent = summary.latest.tag; });
     }
 
-    window.feurstagramReleases = loadReleases().then(function (releases) {
+    window.oxbowReleases = loadReleases().then(function (releases) {
         var summary = summarize(releases);
         apply(summary);
         return summary;
     });
-    window.feurstagramReleases.catch(function () { /* offline or rate-limited: leave the static fallbacks */ });
+    window.oxbowReleases.catch(function () { /* offline or rate-limited: leave the static fallbacks */ });
 })();
