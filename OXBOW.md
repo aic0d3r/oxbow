@@ -10,10 +10,12 @@ things, not ones that pull you back into scrolling.
 ## Roadmap
 
 1. **Downloads** (first)
-   - "Download" item in the native ⋯ menu on posts, reels and stories
-   - Carousels: current slide, plus "all slides"
-   - Full-res profile pictures and highlight stories
-   - Saves to `Pictures/Oxbow` / `Movies/Oxbow` through MediaStore (no storage permission)
+   - [x] "Download" in the native ⋯ menu of posts, reels, stories and highlights
+         (`patches/.../download/DownloadPatch.kt`, `extension/Download.java`)
+   - [x] Carousels: the slide on screen
+   - [x] Saves originals to `Pictures/Oxbow` / `Movies/Oxbow` via DownloadManager (no permission)
+   - [ ] Full-res profile pictures (profile menu rows are a fixed enum; needs another hook)
+   - [ ] Reels opened from DMs (separate Clips viewer menu, untested)
 2. **Ghost mode**: hide seen/typing receipts in DMs and seen on stories (upstream #53)
 3. **Clean share links**: strip `igsh` and other tracking params from copied links (#88)
 4. **F-Droid / Obtainium**: reproducible builds and release metadata (#136, PR #41)
