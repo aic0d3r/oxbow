@@ -124,6 +124,26 @@ public final class Config {
         return getBlocked("limit_following_feed", false);
     }
 
+    // --- Oxbow: keep, privacy and scroll toggles ---
+
+    /** Download row in post, reel, story and highlight menus; long-press avatar for the HD picture. */
+    public static boolean isDownloadEnabled() { return getBlocked("download_enabled", true); }
+    /** Ghost mode: stories you watch are not reported as seen. */
+    public static boolean isStorySeenHidden() { return getBlocked("ghost_story_seen", false); }
+    /** Ghost mode: opening a chat does not send a read receipt. */
+    public static boolean isDmSeenHidden() { return getBlocked("ghost_dm_seen", false); }
+    /** Ghost mode: typing in a chat does not show "typing…" to the other side. */
+    public static boolean isTypingHidden() { return getBlocked("ghost_typing", false); }
+    /** Copied and shared links lose Instagram's tracking parameters (igsh, utm_*...). */
+    public static boolean isCleanLinks() { return getBlocked("clean_links", true); }
+    /** Comments: no comment buttons, no comment sheets. Lockable like every block_*. */
+    public static boolean isCommentsBlocked() { return getBlocked("block_comments", false); }
+    /**
+     * Endless scrolling outside the (blocked) feed and Reels tab: swiping to the next reel in
+     * any reel viewer, and the "more like this" feeds under a search/explore result.
+     */
+    public static boolean isEndlessScrollBlocked() { return getBlocked("block_endless_scroll", true); }
+
     public static boolean isFeedBlocked()      { return getBlocked("block_feed", true); }
     public static boolean isExploreBlocked()   { return getBlocked("block_explore", true); }
     public static boolean isReelsBlocked()     { return getBlocked("block_reels", true); }

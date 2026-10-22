@@ -22,6 +22,9 @@ import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 import com.android.tools.smali.dexlib2.iface.value.StringEncodedValue
 import com.feurstagram.patches.shared.Constants.COMPATIBILITY_INSTAGRAM
 import com.feurstagram.patches.shared.Constants.EXTENSION
+import com.feurstagram.patches.shared.freeLocals
+import com.feurstagram.patches.shared.hasStringEndingWith
+import com.android.tools.smali.dexlib2.iface.instruction.WideLiteralInstruction
 
 private const val DOWNLOAD_CLASS = "Lcom/feurstagram/extension/Download;"
 private const val MEDIA_OPTION = "Lcom/instagram/feed/media/mediaoption/MediaOption\$Option;"
@@ -82,6 +85,40 @@ internal object StoryOptionsHelperFingerprint : Fingerprint(
 /** Smali p-register of parameter [index] of a static method (wide types take two). */
 private fun Method.pRegister(index: Int): Int =
     parameterTypes.take(index).sumOf { if (it.toString() == "J" || it.toString() == "D") 2 else 1 }
+
+// Long-press on a profile's avatar: every avatar variant funnels into this handler
+// (logs, then story peek or expanded picture). (avatarModel, headerViews, Function0).
+internal object ProfileAvatarLongPressFingerprint : Fingerprint(
+    returnType = "V",
+    strings = listOf("hasPrideMediaReel"),
+    custom = { method, _ ->
+        method.parameterTypes.size == 3 && method.parameterTypes[2].toString() == "Lkotlin/jvm/functions/Function0;"
+    },
+)
+
+// Reels viewer menu: the click handler every row of every variant calls with its option.
+internal object ClipsOptionSelectedFingerprint : Fingerprint(
+    returnType = "V",
+    parameters = listOf(MEDIA_OPTION),
+    custom = { method, _ -> method.hasStringEndingWith("ClipsOrganicMoreOptionsHelper_handleOptionSelected") },
+)
+
+// Reels viewer menu builder (redesign sheet); its class holds every menu variant.
+internal object ClipsMenuControllerFingerprint : Fingerprint(
+    custom = { method, _ ->
+        method.hasStringEndingWith("ClipsOrganicMediaItemViewMoreOptionsController_showRedesignBottomSheet_2")
+    },
+)
+
+// Instagram's "eligible for third-party download" check (creator opt-in), used by the reels menu.
+// shortcut: anchored on a purge log string Meta will delete; re-anchor when it fails.
+internal object DownloadEligibilityFingerprint : Fingerprint(
+    returnType = "Z",
+    custom = { method, _ -> method.hasStringEndingWith("ClipsDownloadUtil_isMediaEligibleForThirdPartyDownloads") },
+)
+
+/** MobileConfig flag that moves Download from the reels menu into the share sheet. */
+private const val DOWNLOAD_IN_SHARE_SHEET_FLAG = 36313806754155504L
 
 internal object LabelResFingerprint : Fingerprint(
     definingClass = DOWNLOAD_CLASS,
@@ -216,6 +253,86 @@ val downloadPatch = bytecodePatch(
         }
         if (labelLists == 0 || dispatchers == 0) {
             throw PatchException("Story menu hooks: $labelLists label lists, $dispatchers dispatchers")
+        }
+
+        // 4. Profile pictures: long-press the avatar on someone's profile.
+        ProfileAvatarLongPressFingerprint.method.apply {
+            val getUserId = instructions.firstOrNull {
+                it.getReference<MethodReference>()?.let { r ->
+                    r.name == "getUserId" && r.parameterTypes.isEmpty() && r.returnType == "Ljava/lang/String;"
+                } == true
+            } ?: throw PatchException("Avatar long-press: no getUserId call")
+            val invoke = if (getUserId.opcode == Opcode.INVOKE_INTERFACE) "invoke-interface" else "invoke-virtual"
+            val sessionField = classDefBy(definingClass).fields.singleOrNull {
+                it.type == "Lcom/instagram/common/session/UserSession;"
+            } ?: throw PatchException("Avatar long-press: no single UserSession field")
+            if (freeLocals() < 2) throw PatchException("Avatar long-press: registers")
+            addInstructionsWithLabels(
+                0,
+                """
+                    move-object/from16 v0, p1
+                    $invoke { v0 }, ${getUserId.getReference<MethodReference>()}
+                    move-result-object v0
+                    move-object/from16 v1, p0
+                    iget-object v1, v1, $sessionField
+                    invoke-static { v1, v0 }, $DOWNLOAD_CLASS->profileAvatarLongPress(Ljava/lang/Object;Ljava/lang/String;)Z
+                    move-result v0
+                    if-eqz v0, :instagram
+                    return-void
+                """,
+                ExternalLabel("instagram", getInstruction(0)),
+            )
+        }
+
+        // 5. Reels viewer (reels opened from DMs, search...): always offer Download...
+        val eligibility = DownloadEligibilityFingerprint.method
+        mutableClassDefBy(ClipsMenuControllerFingerprint.classDef).methods.forEach { method ->
+            val insns = method.implementation?.instructions?.toList() ?: return@forEach
+            // Patch from the end so earlier indexes stay valid.
+            insns.indices.reversed().forEach { i ->
+                val ref = insns[i].getReference<MethodReference>() ?: return@forEach
+                val result = insns.getOrNull(i + 1)?.takeIf { it.opcode == Opcode.MOVE_RESULT } ?: return@forEach
+                val reg = (result as OneRegisterInstruction).registerA
+                val hook = when {
+                    ref.definingClass == eligibility.definingClass && ref.name == eligibility.name &&
+                        ref.parameterTypes == eligibility.parameterTypes -> "eligible"
+                    // A1N(config, flag): the flag literal is loaded just before the call.
+                    insns.subList(maxOf(0, i - 3), i).any {
+                        (it as? WideLiteralInstruction)?.wideLiteral == DOWNLOAD_IN_SHARE_SHEET_FLAG
+                    } -> "keepInMenu"
+                    else -> return@forEach
+                }
+                method.addInstructions(
+                    i + 2,
+                    """
+                        invoke-static/range { v$reg .. v$reg }, $DOWNLOAD_CLASS->$hook(Z)Z
+                        move-result v$reg
+                    """,
+                )
+            }
+        }
+        // ...and handle its tap.
+        ClipsOptionSelectedFingerprint.method.apply {
+            val fields = classDefBy(definingClass).fields
+            val activityField = fields.singleOrNull { it.type == FRAGMENT_ACTIVITY }
+            val mediaField = fields.singleOrNull { it.type == MEDIA }
+            if (activityField == null || mediaField == null || freeLocals() < 3) {
+                throw PatchException("Reels menu click: unexpected helper shape")
+            }
+            addInstructionsWithLabels(
+                0,
+                """
+                    move-object/from16 v0, p0
+                    iget-object v1, v0, $activityField
+                    iget-object v2, v0, $mediaField
+                    move-object/from16 v0, p1
+                    invoke-static { v1, v2, v0 }, $DOWNLOAD_CLASS->clipsOption(Landroid/content/Context;Ljava/lang/Object;Ljava/lang/Object;)Z
+                    move-result v0
+                    if-eqz v0, :instagram
+                    return-void
+                """,
+                ExternalLabel("instagram", getInstruction(0)),
+            )
         }
 
         // 1b. Let it through the whitelist Instagram applies to other people's posts.

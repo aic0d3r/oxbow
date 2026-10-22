@@ -113,9 +113,8 @@ public final class Settings {
         tabBar.getViewTreeObserver().addOnGlobalLayoutListener(new HomeTabWatcher(tabBar));
         Hiders.installAll(tabBar);
         Context activity = getActivityContext(tabBar);
-        // The follow card comes first after an install or update; "What's new"
-        // waits until it is dismissed.
-        FollowPrompt.maybeShow(activity, () -> UpdateChecker.checkWhatsNew(activity));
+        // Oxbow: no upstream follow card; "What's new" shows right away.
+        UpdateChecker.checkWhatsNew(activity);
         UpdateChecker.check(activity);
     }
 
@@ -166,7 +165,7 @@ public final class Settings {
             styleWindow(dialog, Color.TRANSPARENT, 0f);
             dialog.show();
         } catch (Throwable t) {
-            Toast.makeText(context, "Feurstagram settings unavailable here", Toast.LENGTH_LONG).show();
+            Toast.makeText(context, "Oxbow settings unavailable here", Toast.LENGTH_LONG).show();
         }
     }
 
@@ -481,7 +480,7 @@ public final class Settings {
         void showOverview(boolean animate) {
             dialog.onBack = null;
             back.setVisibility(View.GONE);
-            title.setText("Feurstagram");
+            title.setText("Oxbow");
             subtitle.setText(hardcore
                     ? "Permanent lock is on. You can tighten blocks but not loosen them. "
                             + "Reinstall to fully unlock."
@@ -605,6 +604,7 @@ public final class Settings {
     private static final String[] SURFACE_KEYS = {
             "block_feed", "block_explore", "block_reels", "block_friends_lane", "block_stories",
             "block_instants", "block_notes", "block_suggested", "block_ads", "block_notifications",
+            "block_comments", "block_endless_scroll",
     };
 
     private static void buildOverview(Context context, LinearLayout column, Pages pages) {
@@ -626,15 +626,21 @@ public final class Settings {
                         Settings::buildLanding));
         sealGroup(context, content);
 
+        LinearLayout keep = addSection(context, column, "Oxbow");
+        addSectionRow(context, keep, "save", "Keep and privacy", keepSummary(),
+                () -> pages.open("Keep and privacy", "Save what matters, leave no trace.",
+                        Settings::buildKeep));
+        sealGroup(context, keep);
+
         LinearLayout app = addSection(context, column, "App");
         addSectionRow(context, app, "moon", "Display and popups", displaySummary(),
                 () -> pages.open("Display and popups", "How Instagram looks and talks to you.",
                         Settings::buildDisplay));
         addSectionRow(context, app, "download", "Updates",
                 Config.isAutoUpdateEnabled() ? "Automatic check on" : "Automatic check off",
-                () -> pages.open("Updates", "Keep Feurstagram current.", Settings::buildUpdates));
+                () -> pages.open("Updates", "Keep Oxbow current.", Settings::buildUpdates));
         addSectionRow(context, app, "heart", "Support", "Help keep the project going",
-                () -> pages.open("Support", "Feurstagram is free and open source.", Settings::buildSupport));
+                () -> pages.open("Support", "Oxbow is built on FeurStagram by Jean Herail. Support the original.", Settings::buildSupport));
         sealGroup(context, app);
     }
 
@@ -651,6 +657,8 @@ public final class Settings {
             case "block_suggested": return Config.isSuggestedBlocked();
             case "block_ads": return Config.isAdsBlocked();
             case "block_notifications": return Config.isNotificationsButtonBlocked();
+            case "block_comments": return Config.isCommentsBlocked();
+            case "block_endless_scroll": return Config.isEndlessScrollBlocked();
             default: return Config.getBlocked(key, false);
         }
     }
@@ -667,6 +675,8 @@ public final class Settings {
             case "block_suggested": return "Suggested accounts";
             case "block_ads": return "Ads";
             case "block_notifications": return "Notifications button";
+            case "block_comments": return "Comments";
+            case "block_endless_scroll": return "Endless scrolling (next reel, more like this)";
             default: return key;
         }
     }
@@ -723,6 +733,26 @@ public final class Settings {
         LinearLayout landing = addGroup(context, column);
         buildLandingOptions(context, landing, new Runnable[1]);
         sealGroup(context, landing);
+    }
+
+    private static void buildKeep(Context context, LinearLayout column) {
+        LinearLayout keep = addSection(context, column, "Keep");
+        addRow(context, keep, "Download in menus, long-press avatar", "download_enabled", Config.isDownloadEnabled());
+        addRow(context, keep, "Clean shared links", "clean_links", Config.isCleanLinks());
+        sealGroup(context, keep);
+
+        LinearLayout ghost = addSection(context, column, "Ghost mode");
+        addRow(context, ghost, "Don't mark stories as seen", "ghost_story_seen", Config.isStorySeenHidden());
+        addRow(context, ghost, "Don't send read receipts", "ghost_dm_seen", Config.isDmSeenHidden());
+        addRow(context, ghost, "Don't show typing", "ghost_typing", Config.isTypingHidden());
+        sealGroup(context, ghost);
+    }
+
+    private static String keepSummary() {
+        int ghost = (Config.isStorySeenHidden() ? 1 : 0) + (Config.isDmSeenHidden() ? 1 : 0)
+                + (Config.isTypingHidden() ? 1 : 0);
+        return (Config.isDownloadEnabled() ? "Downloads on" : "Downloads off")
+                + (ghost == 0 ? ", ghost mode off" : ", ghost mode " + ghost + "/3");
     }
 
     private static void buildDisplay(Context context, LinearLayout column) {
@@ -974,7 +1004,7 @@ public final class Settings {
             return;
         }
         showConfirm(context, "Restart Instagram?",
-                "Feurstagram will clear the cache and restart the app to apply your changes.",
+                "Oxbow will clear the cache and restart the app to apply your changes.",
                 "Restart", PRIMARY, ON_PRIMARY,
                 () -> CacheCleaner.clearAndRestart(context));
     }

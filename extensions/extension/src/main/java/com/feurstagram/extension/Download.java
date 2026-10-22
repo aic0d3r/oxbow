@@ -41,6 +41,7 @@ public final class Download {
      * static (state, Option, creator, CharSequence, ArrayList, boolean).
      */
     public static void addMenuItem(Object creator, ArrayList<Object> options) {
+        if (!Config.isDownloadEnabled()) return;
         try {
             for (Method m : creator.getClass().getDeclaredMethods()) {
                 Class<?>[] p = m.getParameterTypes();
@@ -67,7 +68,7 @@ public final class Download {
     @SuppressWarnings({"unchecked", "rawtypes"})
     public static List<Object> allowInMenu(List<Object> allowed) {
         try {
-            if (allowed.isEmpty()) return allowed;
+            if (allowed.isEmpty() || !Config.isDownloadEnabled()) return allowed;
             Class option = ((Enum) allowed.get(0)).getDeclaringClass();
             Object download = Enum.valueOf(option, "DOWNLOAD");
             if (allowed.contains(download)) return allowed;
@@ -110,7 +111,7 @@ public final class Download {
 
     /** Hook: appends our label to a story menu's label list. */
     public static CharSequence[] addStoryItem(CharSequence[] labels) {
-        if (labels == null) return null;
+        if (labels == null || !Config.isDownloadEnabled()) return labels;
         for (CharSequence l : labels) if (isStoryLabel(l)) return labels;
         CharSequence[] out = java.util.Arrays.copyOf(labels, labels.length + 1);
         out[labels.length] = storyLabel();
@@ -163,7 +164,101 @@ public final class Download {
 
     /** Hook: true when the tapped overflow option is Instagram's native DOWNLOAD. */
     public static boolean isDownload(Object option) {
-        return option instanceof Enum && "DOWNLOAD".equals(((Enum<?>) option).name());
+        return Config.isDownloadEnabled()
+                && option instanceof Enum && "DOWNLOAD".equals(((Enum<?>) option).name());
+    }
+
+    // ---- Reels viewer (reels opened from DMs, search...) ----
+
+    /** Hook on the reels menu's "eligible for download" result: always offer our Download. */
+    public static boolean eligible(boolean instagram) {
+        return instagram || Config.isDownloadEnabled();
+    }
+
+    /** Hook on the flag that moves Download into the share sheet: keep it in the menu. */
+    public static boolean keepInMenu(boolean instagram) {
+        return instagram && !Config.isDownloadEnabled();
+    }
+
+    /** Hook: reels menu click. True when it was our Download (then handled here). */
+    public static boolean clipsOption(Context context, Object media, Object option) {
+        if (!isDownload(option)) return false;
+        download(context, media, -1);
+        return true;
+    }
+
+    // ---- Profile pictures: long-press the avatar on someone's profile ----
+
+    /**
+     * Hook on the profile avatar long-press. Saves the HD profile picture and consumes the
+     * press (true); false lets Instagram do its own thing (story peek), e.g. on your profile.
+     */
+    public static boolean profileAvatarLongPress(Object session, String userId) {
+        if (!Config.isDownloadEnabled() || session == null || userId == null) return false;
+        Context context = Config.getAppContext();
+        try {
+            Field own = session.getClass().getField("userId");
+            if (userId.equals(own.get(session))) return false;
+            Object user = cachedUser(session, userId);
+            if (user == null) return false;
+            String url = hdProfilePicture(user);
+            if (url == null) return false;
+            Node node = Node.of(user);
+            String name = node == null ? null : node.string("username");
+            String base = ((name == null ? userId : name) + "_profile_picture").replaceAll("[^A-Za-z0-9._-]", "_");
+            enqueue(context, url, base + ".jpg", false);
+            toast(context, "Downloading profile picture…");
+            return true;
+        } catch (Throwable t) {
+            Log.w(TAG, "profile picture failed", t);
+            return false;
+        }
+    }
+
+    /** UserCache.forSession(session).get(userId), found by shape: the map holding User values. */
+    private static Object cachedUser(Object session, String userId) throws Exception {
+        ClassLoader cl = session.getClass().getClassLoader();
+        Class<?> cacheClass = Class.forName("com.instagram.user.model.UserCache", false, cl);
+        Class<?> userClass = Class.forName("com.instagram.user.model.User", false, cl);
+        Object cache = null;
+        for (Method m : cacheClass.getDeclaredMethods()) {
+            if (java.lang.reflect.Modifier.isStatic(m.getModifiers()) && m.getReturnType() == cacheClass
+                    && m.getParameterTypes().length == 1 && m.getParameterTypes()[0].isInstance(session)) {
+                m.setAccessible(true);
+                cache = m.invoke(null, session);
+                break;
+            }
+        }
+        if (cache == null) return null;
+        for (Field f : cacheClass.getDeclaredFields()) {
+            if (!java.util.Map.class.isAssignableFrom(f.getType())) continue;
+            f.setAccessible(true);
+            Object map = f.get(cache);
+            Object user = map == null ? null : ((java.util.Map<?, ?>) map).get(userId);
+            if (userClass.isInstance(user)) return user;
+        }
+        return null;
+    }
+
+    /** hd_profile_pic_url_info.url: Instagram's own getter (by return type), else the tree. */
+    private static String hdProfilePicture(Object user) {
+        try {
+            for (Method m : user.getClass().getMethods()) {
+                if (m.getParameterTypes().length == 0
+                        && m.getReturnType().getName().equals("com.instagram.api.schemas.ProfilePicUrlInfo")) {
+                    Object info = m.invoke(user);
+                    if (info != null) return (String) info.getClass().getMethod("getUrl").invoke(info);
+                }
+            }
+        } catch (Throwable ignored) {
+        }
+        try {
+            Node node = Node.of(user);
+            Node info = node == null ? null : node.tree("hd_profile_pic_url_info");
+            return info == null ? null : info.string("url");
+        } catch (Throwable t) {
+            return null;
+        }
     }
 
     /**

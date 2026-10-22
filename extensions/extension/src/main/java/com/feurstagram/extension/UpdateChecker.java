@@ -74,17 +74,17 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public final class UpdateChecker implements Runnable {
 
-    private static final String REPO = "jean-voila/Feurstagram";
+    private static final String REPO = "aic0d3r/oxbow";
     private static final String LATEST_API = "https://api.github.com/repos/" + REPO + "/releases/latest";
     private static final String LATEST_PAGE = "https://github.com/" + REPO + "/releases/latest";
     private static final String RELEASE_BY_TAG = "https://api.github.com/repos/" + REPO + "/releases/tags/";
-    private static final String USER_AGENT = "Feurstagram-UpdateCheck";
+    private static final String USER_AGENT = "Oxbow-UpdateCheck";
 
     /** Action prefix for the per-session PackageInstaller status callback. */
     private static final String INSTALL_ACTION = "com.feurstagram.extension.INSTALL_STATUS";
 
     /** Where the download lands (app-specific external dir, no permission needed). */
-    private static final String UPDATE_FILE_NAME = "feurstagram-update.apk";
+    private static final String UPDATE_FILE_NAME = "oxbow-update.apk";
 
     private static boolean launchWatcherInstalled;
     private static final AtomicBoolean automaticCheckRunning = new AtomicBoolean();
@@ -202,7 +202,7 @@ public final class UpdateChecker implements Runnable {
                     }
                 });
             } else if (manual) {
-                ui.post(() -> toast("FeurStagram is up to date (" + installed + ")"));
+                ui.post(() -> toast("Oxbow is up to date (" + installed + ")"));
             }
         } catch (Throwable t) {
             // Network/parse failures are non-fatal: silent for auto checks,
@@ -239,7 +239,7 @@ public final class UpdateChecker implements Runnable {
     /** True when this is the side-by-side clone package (asset name ends in -clone.apk). */
     private boolean isCloneBuild() {
         String pkg = context.getPackageName();
-        return pkg != null && pkg.endsWith(".feurstagram");
+        return pkg != null && (pkg.endsWith(".oxbow") || pkg.endsWith(".feurstagram"));
     }
 
     /** Everything the prompt and the download need about the release on offer. */
@@ -504,7 +504,7 @@ public final class UpdateChecker implements Runnable {
             card.addView(title);
 
             TextView subtitle = new TextView(context);
-            subtitle.setText("FeurStagram " + version);
+            subtitle.setText("Oxbow " + version);
             Settings.body(subtitle);
             subtitle.setPadding(0, Settings.dp(context, 4), 0, 0);
             card.addView(subtitle);
@@ -542,7 +542,7 @@ public final class UpdateChecker implements Runnable {
             if (updateInFlight || (existing != null && existing.isShowing())) return;
             Settings.Page page = Settings.newPage(context);
             Settings.addPageTitle(page, "Update available",
-                    "FeurStagram " + release.tag + "  ·  you have " + installed);
+                    "Oxbow " + release.tag + "  ·  you have " + installed);
 
             final Dialog dialog = Settings.newPageDialog(context, page.root);
             dialog.setOnDismissListener(d -> {
@@ -752,8 +752,8 @@ public final class UpdateChecker implements Runnable {
         private void showProgressPage() {
             try {
                 Settings.Page page = Settings.newPage(context);
-                Settings.addPageTitle(page, "Updating FeurStagram",
-                        "FeurStagram " + release.tag);
+                Settings.addPageTitle(page, "Updating Oxbow",
+                        "Oxbow " + release.tag);
 
                 LinearLayout block = new LinearLayout(context);
                 block.setOrientation(LinearLayout.VERTICAL);
@@ -861,14 +861,14 @@ public final class UpdateChecker implements Runnable {
                 if (manager == null) return;
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     NotificationChannel channel = new NotificationChannel(CHANNEL_ID,
-                            "Feurstagram updates", NotificationManager.IMPORTANCE_LOW);
+                            "Oxbow updates", NotificationManager.IMPORTANCE_LOW);
                     channel.setShowBadge(false);
                     manager.createNotificationChannel(channel);
                 }
                 Notification.Builder builder = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
                         ? new Notification.Builder(app, CHANNEL_ID)
                         : new Notification.Builder(app);
-                builder.setContentTitle("Updating FeurStagram")
+                builder.setContentTitle("Updating Oxbow")
                         .setContentText(text)
                         .setSmallIcon(android.R.drawable.stat_sys_download)
                         .setOngoing(true)

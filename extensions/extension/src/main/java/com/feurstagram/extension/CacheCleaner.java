@@ -27,7 +27,7 @@ public final class CacheCleaner implements Runnable {
     public static void clearAndRestart(Context context) {
         if (context == null) return;
         try {
-            Toast.makeText(context, "Feurstagram: clearing cache...", Toast.LENGTH_SHORT).show();
+            Toast.makeText(context, "Oxbow: clearing cache...", Toast.LENGTH_SHORT).show();
         } catch (Throwable ignored) {
         }
         new Thread(new CacheCleaner(context)).start();

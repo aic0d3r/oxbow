@@ -447,7 +447,7 @@ public final class Onboarding {
             column.addView(title);
 
             TextView body = new TextView(context);
-            body.setText("Press and hold the Home button below to open Feurstagram "
+            body.setText("Press and hold the Home button below to open Oxbow "
                     + "and choose what to block.\n\nTry it now — it's the only way in.");
             Settings.body(body);
             body.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f);

@@ -111,6 +111,22 @@ public final class Block {
         if (Config.isSuggestedBlocked() && containsAny(path, SUGGESTED)) throw blocked();
         if (Config.isAdsBlocked() && containsAny(path, ADS)) throw blocked();
 
+        // --- Oxbow ---
+        // Story views are reported here (v2); a blocked report is dropped, not retried.
+        if (Config.isStorySeenHidden() && path.contains("/api/v2/media/seen/")) throw blocked();
+        if (Config.isCommentsBlocked() && path.contains("/api/v1/media/")
+                && (path.contains("/comments/") || path.contains("/stream_comments/"))) {
+            throw blocked();
+        }
+        // "More like this" feeds under a search/explore result, and creators' Inspiration reels:
+        // the tapped post still opens (it is already cached), nothing endless comes after it.
+        if (Config.isEndlessScrollBlocked()
+                && (path.contains("/discover/chaining_experience_feed/")
+                || path.contains("/clips/creation_inspiration_clips_on_chaining/")
+                || path.contains("/business/account/get_content_inspiration_medias/"))) {
+            throw blocked();
+        }
+
         // --- Always-blocked analytics / commerce ---
         // No trailing slash: the family has a "_www" sibling
         // (/feed/injected_reels_media_www/) that a slash-terminated match misses.
