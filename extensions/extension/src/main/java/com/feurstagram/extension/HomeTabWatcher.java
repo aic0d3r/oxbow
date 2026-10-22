@@ -41,12 +41,17 @@ public final class HomeTabWatcher implements ViewTreeObserver.OnGlobalLayoutList
         // its own object in the tab's view tag and casts it back on resume, so an
         // overwritten tag crashes (ClassCastException). Detaching after install is
         // enough to run once; re-setting the listener is harmless if it ever repeats.
-        homeTab.setOnLongClickListener(v -> {
+        View.OnLongClickListener openSettings = v -> {
             Context activity = Settings.getActivityContext(v);
             if (activity == null) return false;
             Settings.show(activity);
             return true;
-        });
+        };
+        homeTab.setOnLongClickListener(openSettings);
+        // Oxbow: Messages opens them too, so Home can be hidden.
+        int directId = Hiders.resolveId(context, "direct_tab");
+        View directTab = directId == 0 ? null : bar.getRootView().findViewById(directId);
+        if (directTab != null) directTab.setOnLongClickListener(openSettings);
 
         // First launch with a signed-in account: point at the gesture we just
         // installed. The tab bar only exists once the user is past the login

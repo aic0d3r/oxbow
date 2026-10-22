@@ -38,6 +38,12 @@ internal object FeedUfiStateToStringFingerprint : Fingerprint(
     strings = listOf(", isCommentsEnabled=", ", shouldShowCommentCountInUfi="),
 )
 
+// Reels' comment button state: logs "ReelsCommentButton", then picks hidden / button / count.
+internal object ReelsCommentStateFingerprint : Fingerprint(
+    strings = listOf("ReelsCommentButton"),
+    custom = { method, _ -> method.hasStringEndingWith("UfiUseCase_getCommentButtonAndCount") },
+)
+
 internal object ReelPagerSetupFingerprint : Fingerprint(
     returnType = "V",
     custom = { method, _ -> method.hasStringEndingWith("ClipsViewPagerImpl_setupView") },
@@ -119,6 +125,33 @@ val commentsAndScrollPatch = bytecodePatch(
             }
         }
         if (builders == 0) throw PatchException("UFI state builder not found")
+
+        // Reels comment button: right after the log, Instagram loads its "hidden" state into a
+        // register (sget of the state class's own singleton) and every path then merges on a
+        // `const/4`. Re-load the hidden state there when comments are blocked.
+        ReelsCommentStateFingerprint.method.apply {
+            val insns = instructions.toList()
+            val log = insns.indexOfFirst { it.getReference<StringReference>()?.string == "ReelsCommentButton" }
+            val hiddenAt = (log until insns.size).first { insns[it].opcode == Opcode.SGET_OBJECT }
+            val hidden = insns[hiddenAt].getReference<FieldReference>()!!
+            if (hidden.type != hidden.definingClass) throw PatchException("Reels comment state: not a singleton load")
+            val stateReg = (insns[hiddenAt] as OneRegisterInstruction).registerA
+            val mergeAt = hiddenAt + 1
+            val merge = insns[mergeAt]
+            if (merge.opcode != Opcode.CONST_4) throw PatchException("Reels comment state: merge point moved")
+            val tmp = (merge as OneRegisterInstruction).registerA
+            addInstructionsWithLabels(
+                mergeAt + 1,
+                """
+                    invoke-static { }, $CONFIG_CLASS->isCommentsBlocked()Z
+                    move-result v$tmp
+                    if-eqz v$tmp, :oxbow_keep
+                    sget-object v$stateReg, $hidden
+                    :oxbow_keep
+                    const/4 v$tmp, ${(merge as com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction).narrowLiteral}
+                """,
+            )
+        }
 
         // --- Endless reels: the reel viewer's pager starts with swiping off... ---
         ReelPagerSetupFingerprint.method.apply {

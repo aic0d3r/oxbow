@@ -199,9 +199,20 @@ public final class Config {
 
     /** Navigation-bar icons, with the default the getters use (true = shown). */
     private static final String[] NAV_KEYS = {
-            "nav_show_search", "nav_show_reels", "nav_show_create",
+            "nav_show_home", "nav_show_search", "nav_show_reels", "nav_show_create",
             "nav_show_direct", "nav_show_profile",
     };
+
+    /**
+     * Long-pressing Home or Messages opens the settings, so at least one of them must stay
+     * in the bar: true when this change would hide the last one.
+     */
+    public static boolean wouldLockOutSettings(String key, boolean value) {
+        if (value) return false;
+        if ("nav_show_home".equals(key)) return !isNavTabShown("nav_show_direct");
+        if ("nav_show_direct".equals(key)) return !isNavTabShown("nav_show_home");
+        return false;
+    }
 
     /** Only Reels defaults to hidden; see {@link #isReelsTabShown()}. */
     public static boolean navDefault(String key) {
@@ -218,6 +229,7 @@ public final class Config {
      * "home" (whose tab is never configurable) and for anything unrecognised.
      */
     public static String navKeyForLanding(String landing) {
+        if ("home".equals(landing)) return "nav_show_home";
         if ("search".equals(landing)) return "nav_show_search";
         if ("direct".equals(landing)) return "nav_show_direct";
         if ("profile".equals(landing)) return "nav_show_profile";
@@ -286,7 +298,9 @@ public final class Config {
         String stored = prefs == null ? "home" : prefs.getString("landing_page", "home");
         // The stored choice is kept as-is so re-showing the tab restores it, but a
         // landing page whose tab is hidden right now falls back to the home feed.
-        return isLandingAvailable(stored) ? stored : "home";
+        if (isLandingAvailable(stored)) return stored;
+        // Oxbow: with Home hidden, Messages is always shown (see wouldLockOutSettings).
+        return isNavTabShown("nav_show_home") ? "home" : "direct";
     }
 
     public static void setLandingPage(String value) {

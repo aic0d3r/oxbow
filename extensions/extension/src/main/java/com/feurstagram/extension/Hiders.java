@@ -35,6 +35,11 @@ public final class Hiders {
         // inverted "nav_show_<tab>" preference (true = shown). Home is intentionally
         // absent: long-pressing it opens Settings, so it must stay visible. Reels
         // defaults to hidden, matching the old "blocking reels hid its tab" behaviour.
+        // Oxbow: the "Add comment..." bar under a reel, when comments are blocked (off by default).
+        observer.addOnGlobalLayoutListener(new VisibilityHider(root, "block_comments",
+                false, false, null, "comment_composer_inner_layout"));
+        // Oxbow: Home can go too, as long as Messages stays (it opens settings on long-press).
+        observer.addOnGlobalLayoutListener(new VisibilityHider(root, "nav_show_home", true, true, null, "feed_tab"));
         observer.addOnGlobalLayoutListener(new VisibilityHider(root, "nav_show_search", true, true, null, "search_tab"));
         observer.addOnGlobalLayoutListener(new VisibilityHider(root, "nav_show_reels", false, true, null, "clips_tab"));
         observer.addOnGlobalLayoutListener(new VisibilityHider(root, "nav_show_create", true, true, null, "creation_tab"));

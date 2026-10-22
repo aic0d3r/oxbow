@@ -676,7 +676,7 @@ public final class Settings {
             case "block_ads": return "Ads";
             case "block_notifications": return "Notifications button";
             case "block_comments": return "Comments";
-            case "block_endless_scroll": return "Endless scrolling (next reel, more like this)";
+            case "block_endless_scroll": return "Endless scrolling";
             default: return key;
         }
     }
@@ -696,6 +696,7 @@ public final class Settings {
 
         LinearLayout nav = addSection(context, column, "Icons");
         Runnable refresh = preview::refresh;
+        addRow(context, nav, "Home", "nav_show_home", Config.getBlocked("nav_show_home", true), refresh);
         addRow(context, nav, "Search", "nav_show_search", Config.getBlocked("nav_show_search", true), refresh);
         addRow(context, nav, "Reels", "nav_show_reels", Config.getBlocked("nav_show_reels", false), refresh);
         addRow(context, nav, "Create", "nav_show_create", Config.getBlocked("nav_show_create", true), refresh);
@@ -707,7 +708,7 @@ public final class Settings {
         // for a tab the live bar does not have would do nothing, so it is greyed
         // out; outside the app the order is a guess and every row stays live.
         if (NavPreview.isLive(context)) {
-            String[] tabs = {"search_tab", "clips_tab", "creation_tab", "direct_tab", "profile_tab"};
+            String[] tabs = {"feed_tab", "search_tab", "clips_tab", "creation_tab", "direct_tab", "profile_tab"};
             List<String> present = NavPreview.barOrder(context);
             for (int i = 0; i < tabs.length && i < nav.getChildCount(); i++) {
                 if (present.contains(tabs[i])) continue;
@@ -737,7 +738,7 @@ public final class Settings {
 
     private static void buildKeep(Context context, LinearLayout column) {
         LinearLayout keep = addSection(context, column, "Keep");
-        addRow(context, keep, "Download in menus, long-press avatar", "download_enabled", Config.isDownloadEnabled());
+        addRow(context, keep, "Downloads", "download_enabled", Config.isDownloadEnabled());
         addRow(context, keep, "Clean shared links", "clean_links", Config.isCleanLinks());
         sealGroup(context, keep);
 
@@ -908,7 +909,7 @@ public final class Settings {
 
         static boolean isShown(String tab) {
             switch (tab) {
-                case "feed_tab": return true;
+                case "feed_tab": return Config.getBlocked("nav_show_home", true);
                 case "clips_tab": return Config.getBlocked("nav_show_reels", false);
                 case "direct_tab": return Config.getBlocked("nav_show_direct", true);
                 case "search_tab": return Config.getBlocked("nav_show_search", true);
@@ -1262,6 +1263,12 @@ public final class Settings {
                 btn.setChecked(!isChecked);
                 return;
             }
+            if (Config.wouldLockOutSettings(key, isChecked)) {
+                btn.setChecked(!isChecked);
+                Toast.makeText(context, "Keep Home or Messages: long-press either one to open these settings.",
+                        Toast.LENGTH_LONG).show();
+                return;
+            }
             Config.setBlocked(key, isChecked);
             Config.setNeedsRestart();
             if (onChanged != null) onChanged.run();
@@ -1288,7 +1295,15 @@ public final class Settings {
         if (key.equals("force_sdr")) return "Keep blacks deep by stopping Instagram forcing HDR on the UI.";
         if (key.equals("block_friends_lane")) return "Hide the Friends tab and its avatars in the Reels header.";
         if (key.equals("block_notifications")) return "Hide the notifications (heart) button in the feed header.";
+        if (key.equals("nav_show_home")) return "Hide it and long-press Messages to open these settings.";
         if (key.startsWith("nav_show_")) return "Show this icon in the navigation bar.";
+        if (key.equals("download_enabled")) return "Download in ⋯ menus. Long-press a profile picture to save it.";
+        if (key.equals("clean_links")) return "Remove tracking (igsh, utm) from links you copy or share.";
+        if (key.equals("ghost_story_seen")) return "Watch stories without appearing in the viewer list.";
+        if (key.equals("ghost_dm_seen")) return "Chats you open stay unread for the sender, and for you.";
+        if (key.equals("ghost_typing")) return "Others don't see “typing…” while you write.";
+        if (key.equals("block_comments")) return "Hide comment buttons and never open comments.";
+        if (key.equals("block_endless_scroll")) return "A reel you open stays one reel. No “more like this” feeds.";
         return "Hide this surface in Instagram.";
     }
 

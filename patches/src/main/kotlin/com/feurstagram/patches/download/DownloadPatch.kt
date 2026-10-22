@@ -24,7 +24,6 @@ import com.feurstagram.patches.shared.Constants.COMPATIBILITY_INSTAGRAM
 import com.feurstagram.patches.shared.Constants.EXTENSION
 import com.feurstagram.patches.shared.freeLocals
 import com.feurstagram.patches.shared.hasStringEndingWith
-import com.android.tools.smali.dexlib2.iface.instruction.WideLiteralInstruction
 
 private const val DOWNLOAD_CLASS = "Lcom/feurstagram/extension/Download;"
 private const val MEDIA_OPTION = "Lcom/instagram/feed/media/mediaoption/MediaOption\$Option;"
@@ -103,22 +102,11 @@ internal object ClipsOptionSelectedFingerprint : Fingerprint(
     custom = { method, _ -> method.hasStringEndingWith("ClipsOrganicMoreOptionsHelper_handleOptionSelected") },
 )
 
-// Reels viewer menu builder (redesign sheet); its class holds every menu variant.
-internal object ClipsMenuControllerFingerprint : Fingerprint(
-    custom = { method, _ ->
-        method.hasStringEndingWith("ClipsOrganicMediaItemViewMoreOptionsController_showRedesignBottomSheet_2")
-    },
+// Reels viewer: opens any of its menu sheets with (anchor view, sheet builder, ...).
+internal object ClipsSheetLaunchFingerprint : Fingerprint(
+    returnType = "V",
+    custom = { method, _ -> method.hasStringEndingWith("ClipsOrganicMoreOptionsHelper_launchBottomSheet") },
 )
-
-// Instagram's "eligible for third-party download" check (creator opt-in), used by the reels menu.
-// shortcut: anchored on a purge log string Meta will delete; re-anchor when it fails.
-internal object DownloadEligibilityFingerprint : Fingerprint(
-    returnType = "Z",
-    custom = { method, _ -> method.hasStringEndingWith("ClipsDownloadUtil_isMediaEligibleForThirdPartyDownloads") },
-)
-
-/** MobileConfig flag that moves Download from the reels menu into the share sheet. */
-private const val DOWNLOAD_IN_SHARE_SHEET_FLAG = 36313806754155504L
 
 internal object LabelResFingerprint : Fingerprint(
     definingClass = DOWNLOAD_CLASS,
@@ -284,34 +272,17 @@ val downloadPatch = bytecodePatch(
             )
         }
 
-        // 5. Reels viewer (reels opened from DMs, search...): always offer Download...
-        val eligibility = DownloadEligibilityFingerprint.method
-        mutableClassDefBy(ClipsMenuControllerFingerprint.classDef).methods.forEach { method ->
-            val insns = method.implementation?.instructions?.toList() ?: return@forEach
-            // Patch from the end so earlier indexes stay valid.
-            insns.indices.reversed().forEach { i ->
-                val ref = insns[i].getReference<MethodReference>() ?: return@forEach
-                val result = insns.getOrNull(i + 1)?.takeIf { it.opcode == Opcode.MOVE_RESULT } ?: return@forEach
-                val reg = (result as OneRegisterInstruction).registerA
-                val hook = when {
-                    ref.definingClass == eligibility.definingClass && ref.name == eligibility.name &&
-                        ref.parameterTypes == eligibility.parameterTypes -> "eligible"
-                    // A1N(config, flag): the flag literal is loaded just before the call.
-                    insns.subList(maxOf(0, i - 3), i).any {
-                        (it as? WideLiteralInstruction)?.wideLiteral == DOWNLOAD_IN_SHARE_SHEET_FLAG
-                    } -> "keepInMenu"
-                    else -> return@forEach
-                }
-                method.addInstructions(
-                    i + 2,
-                    """
-                        invoke-static/range { v$reg .. v$reg }, $DOWNLOAD_CLASS->$hook(Z)Z
-                        move-result v$reg
-                    """,
-                )
+        // 5. Reels viewer (reels opened from DMs, search...): add a Download row to its sheets...
+        ClipsSheetLaunchFingerprint.method.apply {
+            if (parameterTypes.size < 2 || AccessFlags.STATIC.isSet(accessFlags)) {
+                throw PatchException("Reels sheet launch: unexpected signature")
             }
+            addInstructions(
+                0,
+                "invoke-static/range { p0 .. p2 }, $DOWNLOAD_CLASS->addClipsRow(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V",
+            )
         }
-        // ...and handle its tap.
+        // ...and handle Instagram's own Download row, when a variant shows one.
         ClipsOptionSelectedFingerprint.method.apply {
             val fields = classDefBy(definingClass).fields
             val activityField = fields.singleOrNull { it.type == FRAGMENT_ACTIVITY }

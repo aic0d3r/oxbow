@@ -23,8 +23,12 @@ public final class ShareLinks {
             "https?://(?:www\\.)?(?:instagram\\.com|instagr\\.am|ig\\.me)/[^\\s\"'<>]*",
             Pattern.CASE_INSENSITIVE);
 
-    private static final Pattern TRACKING = Pattern.compile(
-            "^(?:igsh|igshid|igsi|utm_[a-z_]+|fbclid|source_name|si)$", Pattern.CASE_INSENSITIVE);
+    /**
+     * Query parameters that change what an Instagram link opens. Everything else is tracking
+     * (igsh, igshid, utm_*, obrf...): an allowlist, because Instagram keeps adding new ones.
+     */
+    private static final Pattern FUNCTIONAL = Pattern.compile(
+            "^(?:img_index|story_media_id|comment_id|hl)$", Pattern.CASE_INSENSITIVE);
 
     /** Returns {@code text} itself when nothing changed (keeps any styling). */
     public static CharSequence clean(CharSequence text) {
@@ -60,7 +64,7 @@ public final class ShareLinks {
             if (pair.isEmpty()) continue;
             int eq = pair.indexOf('=');
             String key = eq < 0 ? pair : pair.substring(0, eq);
-            if (TRACKING.matcher(key).matches()) continue;
+            if (!FUNCTIONAL.matcher(key).matches()) continue;
             if (kept.length() > 0) kept.append('&');
             kept.append(pair);
         }
@@ -94,6 +98,7 @@ public final class ShareLinks {
                 "https://www.instagram.com/reel/ABC/");
         check("https://www.instagram.com/p/ABC/?img_index=2&igsh=1", "https://www.instagram.com/p/ABC/?img_index=2");
         check("https://instagram.com/natgeo?igshid=1#x", "https://instagram.com/natgeo#x");
+        check("https://www.instagram.com/p/DeuOR-CjKE9/?obrf=bWZt", "https://www.instagram.com/p/DeuOR-CjKE9/");
         check("https://example.com/?igsh=1", "https://example.com/?igsh=1");
     }
 

@@ -170,14 +170,69 @@ public final class Download {
 
     // ---- Reels viewer (reels opened from DMs, search...) ----
 
-    /** Hook on the reels menu's "eligible for download" result: always offer our Download. */
-    public static boolean eligible(boolean instagram) {
-        return instagram || Config.isDownloadEnabled();
+    /**
+     * Hook, as the reels viewer opens one of its menu sheets: adds a Download row (Instagram's
+     * own row builder, icon and label) just above the last row (Report). Instagram has six
+     * variants of that menu and only some carry its own Download, so this one is ours.
+     */
+    public static void addClipsRow(Object helper, Object view, Object sheet) {
+        if (!Config.isDownloadEnabled() || helper == null || sheet == null) return;
+        try {
+            Context context = null;
+            Object media = null;
+            for (Field f : helper.getClass().getDeclaredFields()) {
+                f.setAccessible(true);
+                if (context == null && android.app.Activity.class.isAssignableFrom(f.getType())) {
+                    context = (Context) f.get(helper);
+                } else if (media == null && f.getType().getName().equals("com.instagram.feed.media.Media")) {
+                    media = f.get(helper);
+                }
+            }
+            if (context == null || media == null) return;
+            String label = storyLabel();
+            java.util.LinkedList<Object> rows = null;
+            for (Field f : sheet.getClass().getDeclaredFields()) {
+                if (f.getType() != java.util.LinkedList.class) continue;
+                f.setAccessible(true);
+                rows = (java.util.LinkedList<Object>) f.get(sheet);
+            }
+            if (rows == null || rows.isEmpty() || hasRow(rows, label)) return; // sub-sheets start empty
+            Method add = null;
+            for (Method m : sheet.getClass().getDeclaredMethods()) {
+                Class<?>[] p = m.getParameterTypes();
+                if (p.length == 7 && p[0] == Context.class && p[1] == android.view.View.OnClickListener.class
+                        && p[2] == String.class && p[3] == String.class && p[4] == int.class
+                        && p[5] == boolean.class && p[6] == boolean.class) add = m;
+            }
+            if (add == null) return;
+            final Context ctx = context;
+            final Object item = media;
+            android.view.View.OnClickListener onClick = v -> {
+                download(ctx, item, -1);
+                // Instagram's own rows close the sheet; it lives in the activity, so Back does.
+                if (ctx instanceof android.app.Activity) ((android.app.Activity) ctx).onBackPressed();
+            };
+            add.setAccessible(true);
+            add.invoke(sheet, context, onClick, label, null, storyIcon(label), false, false);
+            if (rows.size() >= 2) rows.add(rows.size() - 2, rows.removeLast()); // above Report
+        } catch (Throwable t) {
+            Log.w(TAG, "could not add the reels menu row", t);
+        }
     }
 
-    /** Hook on the flag that moves Download into the share sheet: keep it in the menu. */
-    public static boolean keepInMenu(boolean instagram) {
-        return instagram && !Config.isDownloadEnabled();
+    private static boolean hasRow(java.util.List<Object> rows, String label) {
+        for (Object row : rows) {
+            for (Field f : row.getClass().getDeclaredFields()) {
+                if (f.getType() != String.class && f.getType() != CharSequence.class) continue;
+                try {
+                    f.setAccessible(true);
+                    Object value = f.get(row);
+                    if (value != null && label.contentEquals((CharSequence) value)) return true;
+                } catch (Throwable ignored) {
+                }
+            }
+        }
+        return false;
     }
 
     /** Hook: reels menu click. True when it was our Download (then handled here). */
@@ -240,25 +295,43 @@ public final class Download {
         return null;
     }
 
-    /** hd_profile_pic_url_info.url: Instagram's own getter (by return type), else the tree. */
+    /**
+     * The widest HD profile picture: hd_profile_pic_url_info through Instagram's own getter
+     * (by return type, it also covers users built from JSON), and hd_multiple_profile_picture_urls
+     * from the tree.
+     */
     private static String hdProfilePicture(Object user) {
+        String best = null;
+        int bestWidth = -1;
         try {
             for (Method m : user.getClass().getMethods()) {
-                if (m.getParameterTypes().length == 0
-                        && m.getReturnType().getName().equals("com.instagram.api.schemas.ProfilePicUrlInfo")) {
-                    Object info = m.invoke(user);
-                    if (info != null) return (String) info.getClass().getMethod("getUrl").invoke(info);
-                }
+                if (m.getParameterTypes().length != 0
+                        || !m.getReturnType().getName().equals("com.instagram.api.schemas.ProfilePicUrlInfo")) continue;
+                Object info = m.invoke(user);
+                if (info == null) continue;
+                best = (String) info.getClass().getMethod("getUrl").invoke(info);
+                Object w = info.getClass().getMethod("getWidth").invoke(info);
+                bestWidth = w instanceof Number ? ((Number) w).intValue() : 0;
             }
         } catch (Throwable ignored) {
         }
         try {
             Node node = Node.of(user);
-            Node info = node == null ? null : node.tree("hd_profile_pic_url_info");
-            return info == null ? null : info.string("url");
-        } catch (Throwable t) {
-            return null;
+            if (node != null) {
+                for (Node c : node.list("hd_multiple_profile_picture_urls")) {
+                    String url = c.string("url");
+                    if (url != null && c.integer("width") > bestWidth) {
+                        best = url;
+                        bestWidth = c.integer("width");
+                    }
+                }
+                Node info = best == null ? node.tree("hd_profile_pic_url_info") : null;
+                if (info != null) best = info.string("url");
+            }
+        } catch (Throwable ignored) {
         }
+        Log.i(TAG, "profile picture " + bestWidth + "px");
+        return best;
     }
 
     /**
