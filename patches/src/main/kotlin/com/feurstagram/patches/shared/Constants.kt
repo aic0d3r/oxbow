@@ -14,7 +14,8 @@ object Constants {
     val COMPATIBILITY_INSTAGRAM = Compatibility(
         name = "Instagram",
         packageName = "com.instagram.android",
-        apkFileType = ApkFileType.APK,
+        // APKMirror ships Instagram as a split bundle; Morphe Manager merges it itself.
+        apkFileType = ApkFileType.APKM,
         appIconColor = 0xFC483C,
         // version = null targets the latest known build and every future one,
         // so the patches keep applying across Instagram updates.

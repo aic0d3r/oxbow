@@ -109,6 +109,30 @@ public final class UpdateChecker implements Runnable {
         this.manual = manual;
     }
 
+    /** SHA-256 of the certificate Oxbow releases are signed with (oxbow.keystore). */
+    private static final String OXBOW_CERT_SHA256 =
+            "f05345ed81cc36d64114daa494145c5ab5c8170cf804b709c14b71d5781242de";
+
+    /**
+     * Whether this install is one of Oxbow's own release APKs. A build patched by the user (Morphe
+     * Manager, build.sh without the release key) carries another signature, so a release APK
+     * could never install over it: offering one would only fail.
+     */
+    static boolean isOfficialBuild(Context context) {
+        try {
+            android.content.pm.PackageInfo info = context.getPackageManager().getPackageInfo(
+                    context.getPackageName(), android.content.pm.PackageManager.GET_SIGNING_CERTIFICATES);
+            java.security.MessageDigest sha = java.security.MessageDigest.getInstance("SHA-256");
+            for (android.content.pm.Signature s : info.signingInfo.getApkContentsSigners()) {
+                StringBuilder hex = new StringBuilder();
+                for (byte b : sha.digest(s.toByteArray())) hex.append(String.format("%02x", b));
+                if (OXBOW_CERT_SHA256.equals(hex.toString())) return true;
+            }
+        } catch (Throwable ignored) {
+        }
+        return false;
+    }
+
     /** Install launch observation once, including returns to a still-running app. */
     public static void check(Context context) {
         if (!(context instanceof Activity) || launchWatcherInstalled) return;
@@ -120,6 +144,7 @@ public final class UpdateChecker implements Runnable {
     }
 
     private static void checkAutomatically(Activity activity) {
+        if (!isOfficialBuild(activity)) return; // patched by the user: Morphe Manager updates it
         if (!Config.isAutoUpdateEnabled() || !automaticCheckRunning.compareAndSet(false, true)) return;
         if (DebugBridge.isNetworkTraceEnabled()) Log.i("FeurUpdate", "automatic check started");
         new Thread(new UpdateChecker(activity, false), "FeurStagram-update-check").start();
@@ -173,6 +198,11 @@ public final class UpdateChecker implements Runnable {
      */
     public static void checkNow(Context context) {
         if (context == null) return;
+        if (!isOfficialBuild(context)) {
+            Toast.makeText(context, "You patched this build yourself: update it from Morphe Manager.",
+                    Toast.LENGTH_LONG).show();
+            return;
+        }
         Toast.makeText(context, "Checking for updates…", Toast.LENGTH_SHORT).show();
         new Thread(new UpdateChecker(context, true)).start();
     }

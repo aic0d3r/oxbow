@@ -38,7 +38,14 @@ Download from [Releases](https://github.com/aic0d3r/oxbow/releases/latest):
 - `oxbow.apk` replaces Instagram (uninstall Instagram first).
 - `oxbow-clone.apk` installs next to Instagram.
 
-**Updates:** Oxbow checks this repository on launch. Or use
+**Patch it yourself with [Morphe Manager](https://morphe.software)** (no prebuilt APK, updates
+from the Manager): on your phone open
+[`morphe.software/add-source?github=aic0d3r/oxbow`](https://morphe.software/add-source?github=aic0d3r/oxbow&name=Oxbow&app=com.instagram.android),
+or add the source `github.com/aic0d3r/oxbow` by hand, then patch Instagram (the APKM bundle from
+APKMirror). Enable *Clone* to install next to Instagram.
+
+**Updates:** the prebuilt APKs check this repository on launch (a build you patched yourself
+updates through Morphe Manager instead). Or use
 [Obtainium](https://github.com/ImranR98/Obtainium): add `https://github.com/aic0d3r/oxbow` and set
 *Filter APKs by regular expression* to `oxbow\.apk$` (or `oxbow-clone\.apk$`).
 
