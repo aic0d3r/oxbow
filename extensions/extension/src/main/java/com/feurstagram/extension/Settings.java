@@ -640,7 +640,7 @@ public final class Settings {
                 Config.isAutoUpdateEnabled() ? "Automatic check on" : "Automatic check off",
                 () -> pages.open("Updates", "Keep Oxbow current.", Settings::buildUpdates));
         addSectionRow(context, app, "heart", "Support", "Help keep the project going",
-                () -> pages.open("Support", "Oxbow is built on FeurStagram by Jean Herail. Support the original.", Settings::buildSupport));
+                () -> pages.open("Support", "Oxbow is free and open source. Sponsoring keeps it working with new Instagram versions.", Settings::buildSupport));
         sealGroup(context, app);
     }
 
@@ -739,6 +739,7 @@ public final class Settings {
     private static void buildKeep(Context context, LinearLayout column) {
         LinearLayout keep = addSection(context, column, "Keep");
         addRow(context, keep, "Downloads", "download_enabled", Config.isDownloadEnabled());
+        addRow(context, keep, "Download all slides", "download_all_slides", Config.isDownloadAllSlides());
         addRow(context, keep, "Clean shared links", "clean_links", Config.isCleanLinks());
         sealGroup(context, keep);
 
@@ -774,14 +775,19 @@ public final class Settings {
     }
 
     private static void buildSupport(Context context, LinearLayout column) {
-        Button sponsors = makeButton(context, "Donate on GitHub Sponsors", 0, ON_SURFACE, false);
-        sponsors.setBackground(outlined(context, OUTLINE_VARIANT));
-        sponsors.setOnClickListener(v -> openUrl(context, "https://github.com/sponsors/jean-voila"));
+        Button sponsors = makeButton(context, "Sponsor on GitHub", SURFACE_CONTAINER_HIGH, ON_SURFACE, true);
+        sponsors.setOnClickListener(v -> openUrl(context, "https://github.com/sponsors/aic0d3r"));
         column.addView(sponsors, stackedButtonParams(context, 16));
 
-        Button coffee = makeButton(context, "☕  Buy me a coffee", SURFACE_CONTAINER_HIGH, ON_SURFACE, true);
-        coffee.setOnClickListener(v -> openUrl(context, "https://buymeacoffee.com/jean_voila"));
-        column.addView(coffee, stackedButtonParams(context, 10));
+        Button source = makeButton(context, "Source code and issues", 0, ON_SURFACE, false);
+        source.setBackground(outlined(context, OUTLINE_VARIANT));
+        source.setOnClickListener(v -> openUrl(context, "https://github.com/aic0d3r/oxbow"));
+        column.addView(source, stackedButtonParams(context, 10));
+
+        Button upstream = makeButton(context, "Built on FeurStagram by Jean Herail", 0, ON_SURFACE, false);
+        upstream.setBackground(outlined(context, OUTLINE_VARIANT));
+        upstream.setOnClickListener(v -> openUrl(context, "https://github.com/jean-voila/FeurStagram"));
+        column.addView(upstream, stackedButtonParams(context, 10));
     }
 
     private static String displaySummary() {
@@ -1298,6 +1304,7 @@ public final class Settings {
         if (key.equals("nav_show_home")) return "Hide it and long-press Messages to open these settings.";
         if (key.startsWith("nav_show_")) return "Show this icon in the navigation bar.";
         if (key.equals("download_enabled")) return "Download in ⋯ menus. Long-press a profile picture to save it.";
+        if (key.equals("download_all_slides")) return "Posts with several photos or videos save all of them, not just the one on screen.";
         if (key.equals("clean_links")) return "Remove tracking (igsh, utm) from links you copy or share.";
         if (key.equals("ghost_story_seen")) return "Watch stories without appearing in the viewer list.";
         if (key.equals("ghost_dm_seen")) return "Chats you open stay unread for the sender, and for you.";

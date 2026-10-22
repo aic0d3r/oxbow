@@ -128,6 +128,8 @@ public final class Config {
 
     /** Download row in post, reel, story and highlight menus; long-press avatar for the HD picture. */
     public static boolean isDownloadEnabled() { return getBlocked("download_enabled", true); }
+    /** Downloading a carousel post saves every slide, not just the one on screen. */
+    public static boolean isDownloadAllSlides() { return getBlocked("download_all_slides", false); }
     /** Ghost mode: stories you watch are not reported as seen. */
     public static boolean isStorySeenHidden() { return getBlocked("ghost_story_seen", false); }
     /** Ghost mode: opening a chat does not send a read receipt. */

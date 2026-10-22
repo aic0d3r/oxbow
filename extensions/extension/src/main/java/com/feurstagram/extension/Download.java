@@ -345,6 +345,7 @@ public final class Download {
 
             List<Node> items = new ArrayList<>();
             List<Node> carousel = carouselOf(media);
+            if (Config.isDownloadAllSlides()) index = -1;
             if (!carousel.isEmpty()) {
                 if (index >= 0 && index < carousel.size()) items.add(carousel.get(index));
                 else items.addAll(carousel);
