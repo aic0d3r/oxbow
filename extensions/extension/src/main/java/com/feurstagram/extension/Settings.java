@@ -4,8 +4,11 @@ import android.app.Activity;
 import android.app.Dialog;
 import android.animation.ValueAnimator;
 import android.content.Context;
+import android.content.ComponentName;
 import android.content.ContextWrapper;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.graphics.Typeface;
@@ -35,7 +38,9 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Feurstagram settings, shown as a full-screen page when the Home tab is
@@ -1163,9 +1168,42 @@ public final class Settings {
         try {
             Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            context.startActivity(intent);
+            context.startActivity(inBrowser(context, intent));
         } catch (Throwable t) {
             Toast.makeText(context, "No browser available", Toast.LENGTH_LONG).show();
+        }
+    }
+
+    /**
+     * Routes a link past apps that claim its domain, straight to a browser. The GitHub app
+     * claims every github.com link but can't show Sponsors pages: it relays them to a
+     * browser from the background, which MIUI (and Android 14+ rules) silently block.
+     * Instagram's manifest queries VIEW for every scheme, so all browsers are visible here.
+     */
+    private static Intent inBrowser(Context context, Intent intent) {
+        try {
+            PackageManager pm = context.getPackageManager();
+            Intent probe = new Intent(Intent.ACTION_VIEW, Uri.parse("https://example.com"))
+                    .addCategory(Intent.CATEGORY_BROWSABLE);
+            ResolveInfo preferred = pm.resolveActivity(probe, PackageManager.MATCH_DEFAULT_ONLY);
+            // A default browser (or the only one) resolves to itself; otherwise to the system resolver.
+            if (preferred != null && !"android".equals(preferred.activityInfo.packageName)) {
+                return intent.setPackage(preferred.activityInfo.packageName);
+            }
+            Set<String> browsers = new HashSet<>();
+            for (ResolveInfo r : pm.queryIntentActivities(probe, 0)) browsers.add(r.activityInfo.packageName);
+            ArrayList<ComponentName> apps = new ArrayList<>();
+            for (ResolveInfo r : pm.queryIntentActivities(intent, 0)) {
+                if (!browsers.contains(r.activityInfo.packageName)) {
+                    apps.add(new ComponentName(r.activityInfo.packageName, r.activityInfo.name));
+                }
+            }
+            if (browsers.isEmpty() || apps.isEmpty()) return intent;
+            Intent chooser = Intent.createChooser(intent, null);
+            chooser.putExtra(Intent.EXTRA_EXCLUDE_COMPONENTS, apps.toArray(new ComponentName[0]));
+            return chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        } catch (Throwable t) {
+            return intent;
         }
     }
 
