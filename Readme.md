@@ -1,9 +1,8 @@
-# Oxbow
+# Oxbow — Instagram without Reels, feed or ads (Android)
 
 **Instagram, off the stream.** An oxbow is a calm lake cut off from a river's main
-current. Oxbow is a patched Instagram for Android that takes out the endless parts
-and adds back the few things worth keeping — so it works for DMs, stories and saving
-posts, without the slot machine.
+current. Oxbow is a patched Instagram for Android that removes the endless parts
+and keeps the few worth having — DMs, stories, saving posts — without the slot machine.
 
 [![Release](https://img.shields.io/github/v/release/aic0d3r/oxbow?color=2ea44f)](https://github.com/aic0d3r/oxbow/releases/latest)
 [![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue)](LICENSE)
