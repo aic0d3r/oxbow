@@ -4,7 +4,7 @@ All notable changes to Oxbow are documented in this file. Oxbow is a fork of
 [FeurStagram](https://github.com/jean-voila/FeurStagram); its history before the fork is
 kept below, unchanged.
 
-## Unreleased
+## Oxbow v452-0-0-48-64, patch bundle 1.0.1
 
 ### Added
 - **Oxbow icon and logo.** A lake ring cut off by a passing river: the launcher icon is
