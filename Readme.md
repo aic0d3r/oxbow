@@ -1,3 +1,10 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="brand/lockup.svg">
+    <img src="brand/lockup-dark.svg" alt="Oxbow" width="360">
+  </picture>
+</p>
+
 # Oxbow — Instagram without Reels, feed or ads (Android)
 
 **Keep Instagram for what you open it for — messages, stories, the people you know —

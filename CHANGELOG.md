@@ -6,7 +6,11 @@ kept below, unchanged.
 
 ## Unreleased
 
-Nothing yet.
+### Added
+- **Oxbow icon and logo.** A lake ring cut off by a passing river: the launcher icon is
+  now Oxbow's own (adaptive, with a monochrome layer for themed icons) on every Instagram
+  alternate-icon alias. New wordmark, site favicon and social preview. All assets are
+  generated from `brand/build.py`.
 
 ## Oxbow v452-0-0-48-64 (first release)
 
