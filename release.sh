@@ -18,6 +18,8 @@ DRAFT="${2:-}"
 REPO="aic0d3r/oxbow"
 # shellcheck disable=SC1091
 source "$HOME/.config/oxbow/release.env"
+# build.sh finds the SDK for itself, but the gradlew call below needs it too.
+export ANDROID_HOME="${ANDROID_HOME:-$HOME/Android/Sdk}"
 export GITHUB_TOKEN="${GITHUB_TOKEN:-$(gh auth token)}" GITHUB_ACTOR="${GITHUB_ACTOR:-aic0d3r}"
 
 # Bump the bundle's patch number when the current one is already published.
