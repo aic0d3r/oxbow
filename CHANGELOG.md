@@ -11,6 +11,15 @@ kept below, unchanged.
   now Oxbow's own (adaptive, with a monochrome layer for themed icons) on every Instagram
   alternate-icon alias. New wordmark, site favicon and social preview. All assets are
   generated from `brand/build.py`.
+- **Download all slides** (off by default, *Keep and privacy*): downloading a carousel
+  post saves every slide, not just the one on screen.
+
+### Fixed
+- **GitHub and Sponsor links in settings** open in your browser. The GitHub app claimed
+  them but can't show Sponsors pages, and MIUI blocked its hand-off to the browser.
+
+### Docs
+- Every default on a fresh install, in one table in `OXBOW.md`.
 
 ## Oxbow v452-0-0-48-64 (first release)
 

@@ -53,6 +53,9 @@ them until you reinstall.
 Downloads use media the app has already loaded, so Oxbow makes no extra requests to
 Instagram.
 
+Downloads and tracker-free links are on by default; saving every carousel slide at once
+is off. Every default in one table: [OXBOW.md](OXBOW.md#defaults-fresh-install).
+
 ## Install
 
 **Option 1 — prebuilt APK** (simplest). From
