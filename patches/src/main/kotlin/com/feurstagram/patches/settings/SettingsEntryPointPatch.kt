@@ -44,7 +44,7 @@ internal object TabBarBinderFingerprint : Fingerprint(
 @Suppress("unused")
 val settingsEntryPointPatch = bytecodePatch(
     name = "Settings entry point",
-    description = "Opens the Feurstagram settings on a long-press of the Home tab, " +
+    description = "Opens the Oxbow settings on a long-press of the Home tab, " +
         "and installs the surface hiders and update check.",
     default = true,
 ) {

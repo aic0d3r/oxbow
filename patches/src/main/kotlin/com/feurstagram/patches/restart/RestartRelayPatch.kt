@@ -18,7 +18,7 @@ private const val PROCESS = ":feurstagram_restart"
 @Suppress("unused")
 val restartRelayPatch = resourcePatch(
     name = "Restart relay",
-    description = "Declares the one-shot activity Feurstagram runs in its own process to bring " +
+    description = "Declares the one-shot activity Oxbow runs in its own process to bring " +
         "Instagram back after the cache-clear restart.",
     default = true,
 ) {

@@ -28,7 +28,7 @@ private const val DEBUG_CLASS = "Lcom/feurstagram/extension/DebugBridge;"
 @Suppress("unused")
 val debugBridgePatch = bytecodePatch(
     name = "Debug bridge",
-    description = "Development only: exposes the Feurstagram settings over ADB broadcasts so " +
+    description = "Development only: exposes the Oxbow settings over ADB broadcasts so " +
         "they can be driven from a shell instead of the on-screen panel.",
     default = false,
 ) {

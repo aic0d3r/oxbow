@@ -262,6 +262,6 @@ public final class Block {
     }
 
     private static IOException blocked() {
-        return new IOException("Blocked by Feurstagram");
+        return new IOException("Blocked by Oxbow");
     }
 }
