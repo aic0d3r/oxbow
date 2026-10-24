@@ -5,7 +5,7 @@
   </picture>
 </p>
 
-<h1 align="center">Oxbow</h1>
+<h1 align="center">Oxbow: Instagram without Reels, feed or ads</h1>
 <h3 align="center">Instagram, cut off from the current.</h3>
 
 <p align="center">
