@@ -202,9 +202,9 @@ def social_preview():
                f'<rect width="512" height="512" rx="112" fill="#1B1B1B"/>{mark(LIGHT)}</g>'
                f'<g transform="translate({tx} {my + 132}) scale({ws})">{body}</g>'
                f'<text x="{tx}" y="{my + 196}" font-family="{sans}" font-size="38" fill="#ABABAB">'
-               f'Instagram without Reels, feed or ads</text>'
+               f'Instagram, cut off from the current.</text>'
                f'<text x="{tx}" y="{my + 242}" font-family="{sans}" font-size="26" fill="#757575">'
-               f'Free, open-source patch for Android</text>')
+               f'No feed, Reels or ads. Free and open source, for Android.</text>')
 
 
 def write(rel, text):
