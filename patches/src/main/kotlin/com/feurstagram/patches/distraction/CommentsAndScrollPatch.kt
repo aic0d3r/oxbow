@@ -13,6 +13,7 @@ import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
+import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
@@ -54,11 +55,30 @@ internal object ReelPagerEnableScrollingFingerprint : Fingerprint(
     custom = { method, _ -> method.hasStringEndingWith("ClipsViewPagerImpl_enableScrolling") },
 )
 
+// The story viewer's swipe-up dispatcher: the gesture detector's onScroll hands every
+// swipe-up to this one method, which offers it to each registered listener (the viewer
+// controller that opens the reply composer + keyboard, the per-story-type delegates) until
+// one handles it. Found by stack-tracing the keyboard request on device. Shape: the only
+// class with a listener Set, a (MotionEvent, MotionEvent, Object, F, F, Z)Z handler and a
+// private Function1 -> Z fan-out.
+internal object StorySwipeUpFingerprint : Fingerprint(
+    returnType = "Z",
+    parameters = listOf("Landroid/view/MotionEvent;", "Landroid/view/MotionEvent;", "Ljava/lang/Object;", "F", "F", "Z"),
+    custom = { _, classDef ->
+        classDef.fields.any { it.type == "Ljava/util/Set;" } &&
+            classDef.methods.any { m ->
+                AccessFlags.PRIVATE.isSet(m.accessFlags) && m.returnType == "Z" &&
+                    m.parameterTypes.map { it.toString() } == listOf("Lkotlin/jvm/functions/Function1;")
+            }
+    },
+)
+
 @Suppress("unused")
 val commentsAndScrollPatch = bytecodePatch(
     name = "Comments and endless scroll",
-    description = "Optional comment blocking (no comment button, no comment sheet) and no swiping " +
-        "to the next reel in reel viewers. Runtime toggles.",
+    description = "Optional comment blocking (no comment button, no comment sheet), no swiping " +
+        "to the next reel in reel viewers, and the story viewer's swipe-up gesture does nothing. " +
+        "Runtime toggles.",
     default = true,
 ) {
     compatibleWith(COMPATIBILITY_INSTAGRAM)
@@ -192,6 +212,25 @@ val commentsAndScrollPatch = bytecodePatch(
                     """,
                 )
             }
+        }
+
+        // --- Story swipe-up: answer "not handled" for every swipe-up, the same false the
+        // dispatcher returns when no listener takes it. No reply bar, no quick reactions, no
+        // keyboard; swipe-down dismiss, taps, horizontal navigation and tapping the reply bar
+        // are separate paths and keep working.
+        StorySwipeUpFingerprint.method.apply {
+            val entry = instructions.first()
+            addInstructionsWithLabels(
+                0,
+                """
+                    invoke-static { }, $CONFIG_CLASS->isStorySwipeUpBlocked()Z
+                    move-result v0
+                    if-eqz v0, :oxbow_allow
+                    const/4 v0, 0x0
+                    return v0
+                """,
+                ExternalLabel("oxbow_allow", entry),
+            )
         }
 
         // --- Endless reels: the reel viewer's pager starts with swiping off... ---

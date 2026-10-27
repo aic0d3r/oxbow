@@ -1,5 +1,16 @@
 # Swipe-up fix — session handoff notes
 
+> **SOLVED.** A runtime stack trace (temporary redirect of every `showSoftInput` /
+> `requestFocus` call site to a logging wrapper) showed the real path:
+> `ReelViewGroup.onTouchEvent → GestureDetector → 07ZW/0B8k.onScroll → 0B8P.GOW`
+> (the swipe-up dispatcher that fans out over a listener Set) `→ 0Bs2.GOW → 0Bs2.GdW →`
+> coroutine `→ 0C7h.emit → 0ATK.A0E → requestFocus + 08lq.A0t → showSoftInput`.
+> 0Bs2 (the viewer controller) was never gated. The fix is one entry guard on
+> `0B8P.GOW` returning false (StorySwipeUpFingerprint in CommentsAndScrollPatch).
+> Verified on device: no keyboard/reply bar/emoji on photo + video stories, toggle
+> off restores stock, tap on the reply bar still opens the keyboard, no crashes.
+> Everything below is the history of the hunt.
+
 Working notes for the next session working on Piko #2134 (kill the story-viewer
 swipe-up gesture). Untracked on purpose — do not commit without asking.
 Everything below was verified against Instagram 453.0.0.55.79 on the test phone.
