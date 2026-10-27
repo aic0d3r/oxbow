@@ -198,6 +198,14 @@ public final class Block {
     }
 
     /**
+     * Tree-parse hook (Instagram 453+): the tree media builder parses one media — carousel
+     * children included — in a single call, so the flag resets per media at its entry.
+     */
+    public static void onMediaParseStart() {
+        MEDIA_IS_AD.get()[0] = false;
+    }
+
+    /**
      * Feed-unit hook: called with the media a feed unit wraps, once parsed.
      * Returns null for a sponsored one when ads are blocked, which leaves the
      * unit empty — the same state as an unknown unit type, which Instagram drops.

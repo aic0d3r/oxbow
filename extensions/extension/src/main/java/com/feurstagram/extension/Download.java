@@ -327,6 +327,16 @@ public final class Download {
                 }
                 Node info = best == null ? node.tree("hd_profile_pic_url_info") : null;
                 if (info != null) best = info.string("url");
+                // The hd field can carry a small variant (seen on Instagram 453), so when what
+                // came back is below 1080, upgrade the regular avatar's CDN size segment
+                // instead of saving whatever the tree handed over.
+                if (bestWidth < 1080) {
+                    String small = node.string("profile_pic_url");
+                    if (small != null) {
+                        best = small.replaceAll("/s\\d+x\\d+/", "/s1080x1080/")
+                            .replaceAll("stp=([^&]*?)s\\d+x\\d+", "stp=$1s1080x1080");
+                    }
+                }
             }
         } catch (Throwable ignored) {
         }

@@ -107,7 +107,9 @@ val commentsAndScrollPatch = bytecodePatch(
                 method.instructions.filter { it.opcode == Opcode.RETURN_OBJECT }.reversed().forEach { ret ->
                     val reg = (ret as OneRegisterInstruction).registerA
                     val tmp = if (reg == 0) 1 else 0 // everything but the returned register is dead here
-                    if (reg > 15) throw PatchException("UFI state builder: return register v$reg")
+                    // iput-boolean only takes 4-bit registers: from a high one, work on a copy in v1.
+                    val obj = if (reg > 15) 1 else reg
+                    val copy = if (reg > 15) "move-object/from16 v$obj, v$reg" else ""
                     method.addInstructionsWithLabels(
                         ret.location.index,
                         """
@@ -115,8 +117,9 @@ val commentsAndScrollPatch = bytecodePatch(
                             move-result v$tmp
                             if-eqz v$tmp, :keep
                             const/4 v$tmp, 0x0
-                            iput-boolean v$tmp, v$reg, $commentsEnabled
-                            iput-boolean v$tmp, v$reg, $commentCount
+                            $copy
+                            iput-boolean v$tmp, v$obj, $commentsEnabled
+                            iput-boolean v$tmp, v$obj, $commentCount
                         """,
                         ExternalLabel("keep", ret),
                     )
@@ -126,31 +129,69 @@ val commentsAndScrollPatch = bytecodePatch(
         }
         if (builders == 0) throw PatchException("UFI state builder not found")
 
-        // Reels comment button: right after the log, Instagram loads its "hidden" state into a
-        // register (sget of the state class's own singleton) and every path then merges on a
-        // `const/4`. Re-load the hidden state there when comments are blocked.
+        // Reels comment button. Instagram 452: right after the log, the "hidden" state's
+        // singleton is loaded and every path merges on a `const/4` — re-load the hidden
+        // state at that merge. Instagram 453: that sget became a dead store and the real
+        // decision moved into the row-state block, where the state is either the hidden
+        // singleton (sget) or a fresh `new X(commentCount)`; divert the new-instance to
+        // the singleton when comments are blocked.
         ReelsCommentStateFingerprint.method.apply {
             val insns = instructions.toList()
             val log = insns.indexOfFirst { it.getReference<StringReference>()?.string == "ReelsCommentButton" }
-            val hiddenAt = (log until insns.size).first { insns[it].opcode == Opcode.SGET_OBJECT }
-            val hidden = insns[hiddenAt].getReference<FieldReference>()!!
-            if (hidden.type != hidden.definingClass) throw PatchException("Reels comment state: not a singleton load")
-            val stateReg = (insns[hiddenAt] as OneRegisterInstruction).registerA
-            val mergeAt = hiddenAt + 1
-            val merge = insns[mergeAt]
-            if (merge.opcode != Opcode.CONST_4) throw PatchException("Reels comment state: merge point moved")
-            val tmp = (merge as OneRegisterInstruction).registerA
-            addInstructionsWithLabels(
-                mergeAt + 1,
-                """
-                    invoke-static { }, $CONFIG_CLASS->isCommentsBlocked()Z
-                    move-result v$tmp
-                    if-eqz v$tmp, :oxbow_keep
-                    sget-object v$stateReg, $hidden
-                    :oxbow_keep
-                    const/4 v$tmp, ${(merge as com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction).narrowLiteral}
-                """,
-            )
+            val built = insns.withIndex().firstOrNull { (i, insn) ->
+                i > log + 5 && insn.opcode == Opcode.NEW_INSTANCE &&
+                    insns[i - 2].opcode == Opcode.SGET_OBJECT &&
+                    insns[i + 1].opcode == Opcode.INVOKE_DIRECT &&
+                    (insns[i + 1].getReference<MethodReference>()?.parameterTypes?.size ?: 9) == 1 &&
+                    insns[i + 2].let { it.opcode == Opcode.GOTO || it.opcode == Opcode.GOTO_16 || it.opcode == Opcode.GOTO_32 }
+            }
+            if (built != null) {
+                val (newAt, newInsn) = built
+                val stateReg = (newInsn as OneRegisterInstruction).registerA
+                val singleton = insns[newAt - 2].getReference<FieldReference>()!!
+                if (singleton.type != singleton.definingClass) {
+                    throw PatchException("Reels comment state: not a singleton load")
+                }
+                val gotoInsn = insns[newAt + 2]
+                val mergeIdx = insns.indexOfFirst {
+                    it.location.codeAddress ==
+                        gotoInsn.location.codeAddress +
+                        (gotoInsn as com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction).codeOffset
+                }
+                if (mergeIdx < 0) throw PatchException("Reels comment state: merge target not found")
+                addInstructionsWithLabels(
+                    newAt,
+                    """
+                        invoke-static { }, $CONFIG_CLASS->isCommentsBlocked()Z
+                        move-result v$stateReg
+                        if-eqz v$stateReg, :oxbow_keep
+                        sget-object v$stateReg, $singleton
+                        goto :oxbow_merge
+                    """,
+                    ExternalLabel("oxbow_keep", insns[newAt]),
+                    ExternalLabel("oxbow_merge", insns[mergeIdx]),
+                )
+            } else {
+                val hiddenAt = (log until insns.size).first { insns[it].opcode == Opcode.SGET_OBJECT }
+                val hidden = insns[hiddenAt].getReference<FieldReference>()!!
+                if (hidden.type != hidden.definingClass) throw PatchException("Reels comment state: not a singleton load")
+                val stateReg = (insns[hiddenAt] as OneRegisterInstruction).registerA
+                val mergeAt = hiddenAt + 1
+                val merge = insns[mergeAt]
+                if (merge.opcode != Opcode.CONST_4) throw PatchException("Reels comment state: merge point moved")
+                val tmp = (merge as OneRegisterInstruction).registerA
+                addInstructionsWithLabels(
+                    mergeAt + 1,
+                    """
+                        invoke-static { }, $CONFIG_CLASS->isCommentsBlocked()Z
+                        move-result v$tmp
+                        if-eqz v$tmp, :oxbow_keep
+                        sget-object v$stateReg, $hidden
+                        :oxbow_keep
+                        const/4 v$tmp, ${(merge as com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction).narrowLiteral}
+                    """,
+                )
+            }
         }
 
         // --- Endless reels: the reel viewer's pager starts with swiping off... ---

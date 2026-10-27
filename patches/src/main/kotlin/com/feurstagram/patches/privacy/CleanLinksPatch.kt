@@ -46,14 +46,15 @@ private fun Method.pOf(index: Int): Int =
 // ShareUtil's intent builder: every "share to app" path ends here with the text in a Bundle.
 internal object ShareIntentBundleFingerprint : Fingerprint(
     returnType = "V",
-    strings = listOf("android.intent.extra.EXCLUDE_COMPONENTS", "source_app_package_name", "image/jpeg"),
+    strings = listOf("android.intent.extra.EXCLUDE_COMPONENTS", "image/jpeg"),
     custom = { method, _ -> method.parameterTypes.any { it.toString() == "Landroid/os/Bundle;" } },
 )
 
-// ShareUtil's video branch, which takes the link as a String.
+// ShareUtil's video branch, which takes the link as a String (second-to-last String parameter
+// since Instagram 453; the last one before that).
 internal object ShareVideoIntentFingerprint : Fingerprint(
     returnType = "V",
-    strings = listOf("android.intent.extra.TEXT", "share_to_system_sheet", "ranking_token"),
+    strings = listOf("android.intent.extra.TEXT", "media_id", "ranking_token"),
 )
 
 @Suppress("unused")
@@ -94,9 +95,10 @@ val cleanLinksPatch = bytecodePatch(
             addInstructions(0, "invoke-static/range { p$p .. p$p }, $SHARE_LINKS->cleanBundle(Landroid/os/Bundle;)V")
         }
         ShareVideoIntentFingerprint.method.apply {
-            // The link is the last String parameter.
-            val index = parameterTypes.indexOfLast { it.toString() == "Ljava/lang/String;" }
-            if (index < 0) throw PatchException("Share video intent: no String parameter")
+            // The link is the second-to-last String parameter (the last is not the link).
+            val stringParams = parameterTypes.indices.filter { parameterTypes[it].toString() == "Ljava/lang/String;" }
+            if (stringParams.size < 2) throw PatchException("Share video intent: link parameter not found")
+            val index = stringParams[stringParams.size - 2]
             val p = pOf(index)
             addInstructions(
                 0,

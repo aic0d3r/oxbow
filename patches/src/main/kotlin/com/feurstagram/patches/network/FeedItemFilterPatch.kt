@@ -75,6 +75,20 @@ internal object MediaParseWrapperFingerprint : Fingerprint(
     },
 )
 
+// Instagram 453 inlined the codec into the one parser method that carries the two error
+// strings: it hashes the field name itself instead of calling a codec.
+internal object MediaParseInlineFingerprint : Fingerprint(
+    returnType = MEDIA_TYPE,
+    strings = listOf("Media:null_pointer_exception", "Media:array_out_of_bounds_exception"),
+    custom = { method, _ ->
+        method.implementation?.instructions?.any {
+            ((it as? ReferenceInstruction)?.reference as? MethodReference)?.let { r ->
+                r.definingClass == "Ljava/lang/String;" && r.name == "hashCode"
+            } == true
+        } == true
+    },
+)
+
 private fun Instruction.isMediaCodecCall(wrapper: Method): Boolean {
     if (opcode != Opcode.INVOKE_VIRTUAL) return false
     val reference = (this as ReferenceInstruction).reference as MethodReference
@@ -192,6 +206,24 @@ val feedItemFilterPatch = bytecodePatch(
                 "invoke-static/range { v$keyRegister .. v$keyRegister }, " +
                     "$BLOCK_CLASS->onMediaField(Ljava/lang/String;)V",
             )
+        } else if (MediaParseWrapperFingerprint.methodOrNull == null) {
+            // Instagram 453 inlined the codec into the one parser method that carries the two
+            // error strings. It builds one media — carousel children included — per call, so
+            // reset the ad flag at entry and pass every returned Media through the filter:
+            // that replaces both the dead wrapper's codec hook and its feed-unit filter.
+            MediaParseInlineFingerprint.method.apply {
+                addInstructions(0, "invoke-static { }, $BLOCK_CLASS->onMediaParseStart()V")
+                instructions.filter { it.opcode == Opcode.RETURN_OBJECT }.toList().reversed().forEach { ret ->
+                    val reg = (ret as OneRegisterInstruction).registerA
+                    addInstructions(
+                        ret.location.index,
+                        "invoke-static/range { v$reg .. v$reg }, " +
+                            "$BLOCK_CLASS->filterFeedMedia(Ljava/lang/Object;)Ljava/lang/Object;\n" +
+                            "move-result-object v$reg\n" +
+                            "check-cast v$reg, $MEDIA_TYPE",
+                    )
+                }
+            }
         } else {
             val wrapper = MediaParseWrapperFingerprint.method
             val reference = (wrapper.instructions.first { it.isMediaCodecCall(wrapper) }
