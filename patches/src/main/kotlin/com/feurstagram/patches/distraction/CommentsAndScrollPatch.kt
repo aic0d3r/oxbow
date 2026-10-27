@@ -13,7 +13,6 @@ import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
-import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
@@ -55,25 +54,11 @@ internal object ReelPagerEnableScrollingFingerprint : Fingerprint(
     custom = { method, _ -> method.hasStringEndingWith("ClipsViewPagerImpl_enableScrolling") },
 )
 
-// The story viewer's vertical drag-release handler. It is the only method of the viewer
-// that reacts to a drag ending (flings fall through to the same release), so a guard at
-// its entry covers every swipe-up action at once. "swipe_down" is its dismiss branch;
-// A0I()V is an unrelated action-name mapper that also carries that string, hence the
-// three-parameter shape requirement.
-internal object StorySwipeUpFingerprint : Fingerprint(
-    strings = listOf("swipe_down"),
-    custom = { method, classDef ->
-        method.parameterTypes.size == 2 &&
-            classDef.type == "Linstagram/features/stories/fragment/ReelViewerFragment;"
-    },
-)
-
 @Suppress("unused")
 val commentsAndScrollPatch = bytecodePatch(
     name = "Comments and endless scroll",
-    description = "Optional comment blocking (no comment button, no comment sheet), no swiping " +
-        "to the next reel in reel viewers, and the story viewer's swipe-up gesture does nothing. " +
-        "Runtime toggles.",
+    description = "Optional comment blocking (no comment button, no comment sheet) and no swiping " +
+        "to the next reel in reel viewers. Runtime toggles.",
     default = true,
 ) {
     compatibleWith(COMPATIBILITY_INSTAGRAM)
@@ -207,40 +192,6 @@ val commentsAndScrollPatch = bytecodePatch(
                     """,
                 )
             }
-        }
-
-        // --- Story swipe-up: FRx is the viewer's vertical drag-release handler, the only
-        // path a swipe-up release can take. The Y spring is signed, down-positive — the
-        // dismiss gate compares it against a positive threshold and logs
-        // story_swipe_down_dismiss — so a negative release Y is an upward drag. Skip the
-        // whole handler for those when the toggle is on: no reply bar, no quick reactions.
-        // Swipe-down dismiss, taps and horizontal navigation keep working.
-        StorySwipeUpFingerprint.method.apply {
-            val dataType = parameterTypes[1].toString()
-            val yField = instructions.mapNotNull {
-                (it as? ReferenceInstruction)?.reference as? FieldReference
-            }.firstOrNull { it.type == "F" && it.definingClass == dataType }
-                ?: throw PatchException("Story swipe-up: drag Y field not found")
-            val entry = instructions.first()
-            // The drag data sits in a high register (FRx has 32 locals), which plain iget's
-            // 4-bit field cannot reach and the inline compiler cannot lex iget/from16, so copy
-            // the object with move-object/from16 first and read from the low copy.
-            val p2reg = implementation!!.registerCount - 1
-            addInstructionsWithLabels(
-                0,
-                """
-                    move-object/from16 v0, v$p2reg
-                    const/4 v1, 0x0
-                    iget v2, v0, $yField
-                    cmpg-float v3, v2, v1
-                    if-gez v3, :oxbow_allow
-                    invoke-static { }, $CONFIG_CLASS->isStorySwipeUpBlocked()Z
-                    move-result v3
-                    if-eqz v3, :oxbow_allow
-                    return-void
-                """,
-                ExternalLabel("oxbow_allow", entry),
-            )
         }
 
         // --- Endless reels: the reel viewer's pager starts with swiping off... ---

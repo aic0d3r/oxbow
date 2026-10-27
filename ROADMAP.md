@@ -5,9 +5,13 @@ your choices. Planned work is judged against that. This list may change.
 
 ## Next
 
-- Device-test the Instagram 453 build (three regression fixes plus the new story
-  swipe-up toggle) and release it. 452.1.0.53.64 stays the fallback if 453 cannot be
-  made to work.
+- Device-test the Instagram 453 build (three regression fixes) and release it.
+  452.1.0.53.64 stays the fallback if 453 cannot be made to work.
+- Kill the story-viewer swipe-up gesture (Piko #2134). The reply bar and quick
+  reactions can be hidden at the view layer, but the keyboard is opened through a
+  handler that survived every static hook tried (the delegate swipe handlers, the
+  composer-open funnel, the composer focus call, the show-keyboard lambda) — it
+  needs runtime tracing on a device to pin down.
 
 ## Reliability
 

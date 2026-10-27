@@ -145,12 +145,6 @@ public final class Config {
      * any reel viewer, and the "more like this" feeds under a search/explore result.
      */
     public static boolean isEndlessScrollBlocked() { return getBlocked("block_endless_scroll", true); }
-    /**
-     * Story viewer: the swipe-up gesture does nothing. No reply bar, no quick reactions,
-     * no keyboard — the accidental swipe instead of left/right stays a no-op. Swipe-down
-     * to dismiss and taps keep working.
-     */
-    public static boolean isStorySwipeUpBlocked() { return getBlocked("block_story_swipe_up", true); }
 
     public static boolean isFeedBlocked()      { return getBlocked("block_feed", true); }
     public static boolean isExploreBlocked()   { return getBlocked("block_explore", true); }
