@@ -14,13 +14,14 @@
   <a href="https://github.com/aic0d3r/oxbow/releases"><img src="https://img.shields.io/badge/works%20with-Instagram%20452.0.0.48.64-8a2be2" alt="Instagram 452.0.0.48.64"></a>
 </p>
 
-Oxbow is a free, open-source patched Instagram for Android that keeps **messages, stories
-and the people you know**, cuts **the feed, Reels, Explore and ads** by default, and lets you
-*keep* the things worth keeping: downloads, HD profile pictures, ghost mode and
-tracker-free links.
+Oxbow is a free, open-source patched Instagram for Android that is calm from the first
+launch. It keeps **messages, stories and the people you know**, cuts **the feed, Reels,
+Explore and ads** by default, and lets you *keep* the things worth keeping: downloads, HD
+profile pictures, ghost mode and tracker-free links.
 
-Every block has its own switch, so you keep what you use. Want the home feed? Leave it on,
-or show only people you follow, and cut just the Reels.
+Nothing to configure to get started, and every block still has its own switch. Want the home
+feed? Leave it on, or show only people you follow, and cut just the Reels. Want to make sure
+you stay out? Turn on the permanent lock: you can tighten your blocks, never loosen them.
 
 The name: an oxbow is a lake that used to be part of a river, until the river found a
 shorter way and left it behind. Still water, cut off from the current.
@@ -178,15 +179,23 @@ More answers in [docs/FAQ.md](docs/FAQ.md).
 
 ## How it compares
 
-| | FeurStagram | piko | **Oxbow** |
-|---|---|---|---|
-| Blocks feed, Reels, Explore, ads | Yes | Partly | **Yes** |
-| Permanent lock | Yes | Focus Lock | **Yes** |
-| Downloads | No | Yes | **Yes**, native menu row + HD avatars |
-| Ghost mode | No | Yes | **Yes** |
-| Tracker-free links | No | Yes, misses `obrf` | **Yes** |
-| Comments off, one reel at a time | No | Yes | **Yes** |
-| Works on Instagram 452 | Yes | No | **Yes** |
+Piko and HushGram are bigger toolkits: you pick from dozens of patches and switch on what
+you want. Oxbow is the other way round, set up calm on first launch.
+
+| | FeurStagram | piko | HushGram | **Oxbow** |
+|---|---|---|---|---|
+| Calm out of the box | Yes | No | No, most switches start off | **Yes** |
+| Blocks feed, Reels, Explore, ads | Yes | Partly | Yes, as switches | **Yes** |
+| Permanent lock | Yes | Focus Lock (timed, 24 h cooldown) | Chat lock only | **Yes**, until you reinstall |
+| Downloads | No | Yes | Yes | **Yes**, native menu row + HD avatars |
+| Download a whole carousel | No | No | Partly, carousels with music | **Yes**, optional |
+| Ghost mode | No | Yes | Yes | **Yes** |
+| Tracker-free links | No | Yes | Yes | **Yes** |
+| Comments off | No | Yes | Yes | **Yes** |
+| Instagram 452 | Yes | Pre-release only | 452.1 | 452.0 (452.1 planned) |
+
+*Compared from each project's README and changelog in October 2026. Spot an error? [Open an
+issue](https://github.com/aic0d3r/oxbow/issues/new/choose).*
 
 ## Build it yourself
 

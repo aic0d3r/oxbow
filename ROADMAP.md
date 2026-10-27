@@ -1,17 +1,24 @@
 # Roadmap
 
-This roadmap is intentionally simple and may evolve over time.
+Oxbow's direction is a calm Instagram that is set up from the first launch and holds you to
+your choices. Planned work is judged against that. This list may change.
+
+## Next
+
+- Support Instagram 452.1.0.53.64 (the build Piko's pre-release and HushGram already target).
+- Kill the story-viewer swipe-up gesture, the same way endless scrolling is already cut in the
+  reel viewer.
 
 ## Reliability
 
-- Improve compatibility with new Instagram versions.
+- Keep up with new Instagram versions, and say on each release which one it supports.
 - Document known issues per release.
 - Improve clone APK behavior where possible.
 - Add basic smoke tests where possible.
 
 ## Privacy and trust
 
-- Publish SHA256 hashes for every release artifact.
+- Publish SHA256 hashes for every release artifact (done for APKs and the patch bundle).
 - Document what each patch changes.
 - Improve build-from-source instructions.
 - Document blocked endpoints or telemetry-related changes when relevant.
@@ -20,19 +27,17 @@ This roadmap is intentionally simple and may evolve over time.
 
 - Make the difference between classic APK and clone APK clearer.
 - Improve troubleshooting for Android installation warnings.
-- Add a dedicated installation guide.
+
+## Features
+
+Possible later, if they fit the calm direction:
+
+- more granular Reels blocking;
+- better story controls;
+- optional settings import/export.
 
 ## Community
 
 - Label beginner-friendly issues.
-- Add templates for bug reports and feature requests.
+- Keep bug and feature templates current.
 - Document contribution workflow.
-
-## Features
-
-Potential future improvements:
-
-- more granular Reels blocking;
-- better story controls;
-- optional settings import/export;
-- clearer update flow when Instagram releases new versions.
