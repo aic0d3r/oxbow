@@ -609,7 +609,7 @@ public final class Settings {
     private static final String[] SURFACE_KEYS = {
             "block_feed", "block_explore", "block_reels", "block_friends_lane", "block_stories",
             "block_instants", "block_notes", "block_suggested", "block_ads", "block_notifications",
-            "block_comments", "block_endless_scroll",
+            "block_comments", "block_endless_scroll", "block_story_swipe_up",
     };
 
     private static void buildOverview(Context context, LinearLayout column, Pages pages) {
@@ -664,6 +664,7 @@ public final class Settings {
             case "block_notifications": return Config.isNotificationsButtonBlocked();
             case "block_comments": return Config.isCommentsBlocked();
             case "block_endless_scroll": return Config.isEndlessScrollBlocked();
+            case "block_story_swipe_up": return Config.isStorySwipeUpBlocked();
             default: return Config.getBlocked(key, false);
         }
     }
@@ -682,6 +683,7 @@ public final class Settings {
             case "block_notifications": return "Notifications button";
             case "block_comments": return "Comments";
             case "block_endless_scroll": return "Endless scrolling";
+            case "block_story_swipe_up": return "Story swipe-up";
             default: return key;
         }
     }
@@ -1349,6 +1351,7 @@ public final class Settings {
         if (key.equals("ghost_typing")) return "Others don't see “typing…” while you write.";
         if (key.equals("block_comments")) return "Hide comment buttons and never open comments.";
         if (key.equals("block_endless_scroll")) return "A reel you open stays one reel. No “more like this” feeds.";
+        if (key.equals("block_story_swipe_up")) return "The swipe-up gesture on a story does nothing. No reply bar, no quick reactions.";
         return "Hide this surface in Instagram.";
     }
 

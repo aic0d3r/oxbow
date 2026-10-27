@@ -5,9 +5,9 @@ your choices. Planned work is judged against that. This list may change.
 
 ## Next
 
-- Support Instagram 452.1.0.53.64 (the build Piko's pre-release and HushGram already target).
-- Kill the story-viewer swipe-up gesture, the same way endless scrolling is already cut in the
-  reel viewer.
+- Device-test the Instagram 453 build (three regression fixes plus the new story
+  swipe-up toggle) and release it. 452.1.0.53.64 stays the fallback if 453 cannot be
+  made to work.
 
 ## Reliability
 

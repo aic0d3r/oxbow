@@ -4,6 +4,22 @@ All notable changes to Oxbow are documented in this file. Oxbow is a fork of
 [FeurStagram](https://github.com/jean-voila/FeurStagram); its history before the fork is
 kept below, unchanged.
 
+## Unreleased
+
+### Added
+- **Instagram 453.0.0.55.79.** New anchors where 453 rebuilt things: share-link
+  stripping (the video builder's link moved parameters), the media UFI builder's
+  register widths, the tree media parser (453 inlined the codec) with the ad filter
+  at its returns, and the clips-row comment state. Device testing pending.
+- **Story swipe-up toggle** (on by default, *Blocked surfaces*, covered by the
+  permanent lock): the swipe-up gesture on a story does nothing — no reply bar, no
+  quick reactions, no keyboard. Swipe-down to dismiss, taps and story navigation
+  keep working.
+
+### Fixed
+- **HD profile pictures** download at full size again on 453; when the HD field
+  carries a smaller image, the regular avatar's CDN size segment is upgraded instead.
+
 ## Oxbow v452-0-0-48-64, patch bundle 1.0.1
 
 ### Added
