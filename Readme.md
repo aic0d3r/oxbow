@@ -15,7 +15,7 @@
 </p>
 
 Oxbow is a free, open-source patched Instagram for Android that keeps **messages, stories
-and the people you know**, removes **the feed, Reels, Explore and ads**, and lets you
+and the people you know**, cuts **the feed, Reels, Explore and ads** by default, and lets you
 *keep* the things worth keeping: downloads, HD profile pictures, ghost mode and
 tracker-free links.
 
