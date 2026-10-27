@@ -41,7 +41,16 @@ VERSION="$("$AAPT2" dump badging "$DIR/oxbow.apk" | sed -n "s/.*versionName='\([
 TAG="v${VERSION//./-}"
 SUMS="$(cd "$DIR" && sha256sum oxbow.apk oxbow-clone.apk && cd "$(dirname "$MPP")" && sha256sum "$(basename "$MPP")")"
 
+# The newest CHANGELOG section (first "## " heading) leads the notes: it is what the in-app
+# "What's new" card shows after an update, which stops reading at the "---" rule below.
+CHANGES="$(awk '/^## /{if (seen) exit; seen=1; next} seen' "$DIR/CHANGELOG.md" | sed 's/^### /#### /')"
+[ -n "${CHANGES//[[:space:]]/}" ] || { echo "CHANGELOG.md has no entries in its top section" >&2; exit 1; }
+
 NOTES="$(cat <<EOF
+${CHANGES}
+
+---
+
 Oxbow for Instagram ${VERSION} (patch bundle ${CURRENT}).
 
 - **oxbow.apk** replaces Instagram (uninstall Instagram first).

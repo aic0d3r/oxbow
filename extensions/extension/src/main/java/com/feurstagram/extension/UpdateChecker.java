@@ -551,10 +551,19 @@ public final class UpdateChecker implements Runnable {
                     ViewGroup.LayoutParams.WRAP_CONTENT, 8));
             Settings.boundToFrame(frame, card, scroll);
 
+            Button sponsor = Settings.makeButton(context, "Sponsor on GitHub",
+                    Settings.SURFACE_CONTAINER_HIGH, Settings.ON_SURFACE, true);
+            sponsor.setOnClickListener(v -> {
+                dialog.dismiss();
+                Settings.openUrl(context, Settings.SPONSORS_URL);
+            });
+            card.addView(sponsor, marginParams(context, ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT, 20));
+
             Button done = Settings.makeButton(context, "Got it", Settings.PRIMARY, Settings.ON_PRIMARY, true);
             done.setOnClickListener(v -> dialog.dismiss());
             card.addView(done, marginParams(context, ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT, 20));
+                    ViewGroup.LayoutParams.WRAP_CONTENT, 10));
 
             dialog.setContentView(frame);
             dialog.setCanceledOnTouchOutside(true);
@@ -645,10 +654,13 @@ public final class UpdateChecker implements Runnable {
      * Deliberately shallow — this is a changelog, not a document viewer.
      */
     static void renderNotes(Context context, LinearLayout parent, String markdown) {
-        for (String rawLine : markdown.split("\n")) {
+        // CHANGELOG entries are hard-wrapped: an indented line continues the one above.
+        String joined = markdown.replace("\r", "").replaceAll("\n[ \t]+(?=\\S)", " ");
+        for (String rawLine : joined.split("\n")) {
             String line = rawLine.trim();
             if (line.isEmpty()) continue;
-            if (line.startsWith("---")) continue;
+            // The release body puts install instructions and checksums below a rule.
+            if (line.startsWith("---")) break;
 
             boolean heading = line.startsWith("#");
             while (line.startsWith("#")) line = line.substring(1);
@@ -675,7 +687,8 @@ public final class UpdateChecker implements Runnable {
 
     /** Drop the inline Markdown syntax that would otherwise show up as noise. */
     static String stripInline(String line) {
-        String out = line.replace("**", "").replace("`", "");
+        String out = line.replace("**", "").replace("`", "")
+                .replaceAll("(?<![\\w*])\\*(\\S(?:.*?\\S)?)\\*(?![\\w*])", "$1");
         // [label](url) -> label
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < out.length(); i++) {

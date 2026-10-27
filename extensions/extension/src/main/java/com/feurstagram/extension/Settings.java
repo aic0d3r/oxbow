@@ -83,6 +83,8 @@ public final class Settings {
     public static final int OUTLINE_VARIANT = 0xFF3A3A3A;
     /** The accent. Monochrome by design: white. */
     public static final int PRIMARY = 0xFFFFFFFF;
+
+    static final String SPONSORS_URL = "https://github.com/sponsors/aic0d3r";
     public static final int ON_PRIMARY = 0xFF101010;
     /**
      * Destructive actions. A monochrome scheme has no red to lean on, so they
@@ -783,7 +785,7 @@ public final class Settings {
 
     private static void buildSupport(Context context, LinearLayout column) {
         Button sponsors = makeButton(context, "Sponsor on GitHub", SURFACE_CONTAINER_HIGH, ON_SURFACE, true);
-        sponsors.setOnClickListener(v -> openUrl(context, "https://github.com/sponsors/aic0d3r"));
+        sponsors.setOnClickListener(v -> openUrl(context, SPONSORS_URL));
         column.addView(sponsors, stackedButtonParams(context, 16));
 
         Button source = makeButton(context, "Source code and issues", 0, ON_SURFACE, false);
@@ -1165,7 +1167,7 @@ public final class Settings {
         });
     }
 
-    private static void openUrl(Context context, String url) {
+    static void openUrl(Context context, String url) {
         if (context == null) return;
         try {
             Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));

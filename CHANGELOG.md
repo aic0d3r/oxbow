@@ -7,10 +7,9 @@ kept below, unchanged.
 ## Unreleased
 
 ### Added
-- **Instagram 453.0.0.55.79.** New anchors where 453 rebuilt things: share-link
-  stripping (the video builder's link moved parameters), the media UFI builder's
-  register widths, the tree media parser (453 inlined the codec) with the ad filter
-  at its returns, and the clips-row comment state. Device testing pending.
+- **Instagram 453.0.0.55.79.** Clean share links, ad blocking and hidden comment
+  buttons were rebuilt for the parts Instagram changed in 453.
+- **Sponsor button** in the "What's new" card that appears after an update.
 - **Story swipe-up toggle** (on by default, *Blocked surfaces*, covered by the
   permanent lock): the swipe-up gesture on a story does nothing — no reply bar, no
   quick reactions, no keyboard. Swipe-down to dismiss, taps and story navigation
