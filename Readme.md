@@ -5,7 +5,7 @@
   </picture>
 </p>
 
-<h1 align="center">Oxbow: Instagram without Reels, feed or ads</h1>
+<h1 align="center">Oxbow: Instagram without Reels or ads for Android, feed optional</h1>
 <h3 align="center">Instagram, cut off from the current.</h3>
 
 <p align="center">
@@ -18,6 +18,9 @@ Oxbow is a free, open-source patched Instagram for Android that keeps **messages
 and the people you know**, removes **the feed, Reels, Explore and ads**, and lets you
 *keep* the things worth keeping: downloads, HD profile pictures, ghost mode and
 tracker-free links.
+
+Every block has its own switch, so you keep what you use. Want the home feed? Leave it on,
+or show only people you follow, and cut just the Reels.
 
 The name: an oxbow is a lake that used to be part of a river, until the river found a
 shorter way and left it behind. Still water, cut off from the current.
@@ -206,7 +209,8 @@ updates: [OXBOW.md](OXBOW.md).
   with your Android version, device, Oxbow version and which APK you installed.
 - **Want to help?** Testing on other devices, docs and patch updates for new Instagram
   versions are all welcome: [CONTRIBUTING.md](CONTRIBUTING.md), [ROADMAP.md](ROADMAP.md).
-- **Want to say thanks?** [Sponsor on GitHub](https://github.com/sponsors/aic0d3r).
+- **Want to say thanks?** A star on the repo helps others find it, and you can also
+  [sponsor on GitHub](https://github.com/sponsors/aic0d3r).
 
 ## Credits and license
 
