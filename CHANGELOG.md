@@ -4,6 +4,13 @@ All notable changes to Oxbow are documented in this file. Oxbow is a fork of
 [FeurStagram](https://github.com/jean-voila/FeurStagram); its history before the fork is
 kept below, unchanged.
 
+## Oxbow v453-0-0-55-79, patch bundle 1.1.1
+
+### Fixed
+- **Ads in the home feed** are blocked again on 453. The 453 update missed one part of
+  Instagram's changed post parser, so sponsored posts were no longer recognised. Sponsored
+  carousels are caught too.
+
 ## Oxbow v453-0-0-55-79, patch bundle 1.1.0
 
 ### Added
