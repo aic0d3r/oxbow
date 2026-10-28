@@ -17,10 +17,9 @@ object Constants {
         // APKMirror ships Instagram as a split bundle; Morphe Manager merges it itself.
         apkFileType = ApkFileType.APKM,
         appIconColor = 0xFC483C,
-        // version = null targets the latest known build and every future one,
-        // so the patches keep applying across Instagram updates.
+        // Pinned to the tested build; bump on each Instagram update after verifying patches.
         targets = listOf(
-            AppTarget(version = null),
+            AppTarget(version = "453.0.0.55.79"),
         ),
     )
 }
