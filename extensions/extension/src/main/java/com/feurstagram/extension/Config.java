@@ -170,6 +170,8 @@ public final class Config {
     public static boolean isNotesBlocked()     { return getBlocked("block_notes", true); }
     public static boolean isSuggestedBlocked() { return getBlocked("block_suggested", true); }
     public static boolean isAdsBlocked()       { return getBlocked("block_ads", true); }
+    /** Meta AI and Muse: share-sheet target, promo cards, Vibes / Meta AI / Imagine feed units. */
+    public static boolean isMetaAiBlocked()    { return getBlocked("block_meta_ai", true); }
 
     /**
      * Whether the notifications ("heart") button in the feed header is hidden.

@@ -222,6 +222,31 @@
       "options": []
     },
     {
+      "name": "Hide Meta AI",
+      "description": "Removes Meta AI and Muse from the share sheet and from quick-promotion cards; its feed units (Vibes, Meta AI chats, Imagine) are dropped by the feed item filter. Gated on the Meta AI and Muse toggle.",
+      "default": true,
+      "compatiblePackages": [
+        {
+          "packageName": "com.instagram.android",
+          "name": "Instagram",
+          "description": null,
+          "apkFileType": "APKM",
+          "appIconColor": "#FC483C",
+          "signatures": null,
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "versionCodes": null,
+              "isExperimental": false,
+              "minSdk": null,
+              "description": null
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
       "name": "Install-packages permission",
       "description": "Declares REQUEST_INSTALL_PACKAGES so the update dialog can download and install a new release directly instead of opening the browser.",
       "default": true,

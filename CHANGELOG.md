@@ -7,6 +7,10 @@ kept below, unchanged.
 ## Unreleased
 
 ### Added
+- **Hide Meta AI / Muse** (*Blocked surfaces* > Meta AI and Muse, on by default): removes Muse's
+  target from the share sheet and the Meet Muse promo cards, and drops Vibes, Meta AI chats and
+  Imagine units from the feed. Approach adapted from HushGram. Search-bar, inbox, reel-menu
+  summary, profile and Blend entries are not covered.
 - **Copy caption** in the `⋯` menu of posts and Reels (Keep > Copy caption, on by default).
 
 ## Oxbow v453-0-0-55-79, patch bundle 1.1.1

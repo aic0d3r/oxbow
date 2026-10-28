@@ -610,7 +610,7 @@ public final class Settings {
     /** Keys behind the "Blocked surfaces" page, in display order. */
     private static final String[] SURFACE_KEYS = {
             "block_feed", "block_explore", "block_reels", "block_friends_lane", "block_stories",
-            "block_instants", "block_notes", "block_suggested", "block_ads", "block_notifications",
+            "block_instants", "block_notes", "block_suggested", "block_ads", "block_meta_ai", "block_notifications",
             "block_comments", "block_endless_scroll", "block_story_swipe_up",
     };
 
@@ -663,6 +663,7 @@ public final class Settings {
             case "block_notes": return Config.isNotesBlocked();
             case "block_suggested": return Config.isSuggestedBlocked();
             case "block_ads": return Config.isAdsBlocked();
+            case "block_meta_ai": return Config.isMetaAiBlocked();
             case "block_notifications": return Config.isNotificationsButtonBlocked();
             case "block_comments": return Config.isCommentsBlocked();
             case "block_endless_scroll": return Config.isEndlessScrollBlocked();
@@ -682,6 +683,7 @@ public final class Settings {
             case "block_notes": return "Notes";
             case "block_suggested": return "Suggested accounts";
             case "block_ads": return "Ads";
+            case "block_meta_ai": return "Meta AI and Muse";
             case "block_notifications": return "Notifications button";
             case "block_comments": return "Comments";
             case "block_endless_scroll": return "Endless scrolling";
@@ -1339,6 +1341,7 @@ public final class Settings {
     private static String supportText(String key) {
         if (key.equals("auto_update")) return "Check GitHub for a new version on launch.";
         if (key.equals("block_ads")) return "Block sponsored ads across Instagram.";
+        if (key.equals("block_meta_ai")) return "Hide Meta AI and Muse in the share sheet, promo cards and feed.";
         if (key.equals("limit_following_feed")) return "Show only accounts you follow (needs the feed unblocked).";
         if (key.equals("hide_toasts")) return "Hide every Instagram popup, including “couldn’t refresh feed”.";
         if (key.equals("force_sdr")) return "Keep blacks deep by stopping Instagram forcing HDR on the UI.";

@@ -62,6 +62,13 @@ public final class Block {
             "suggested_igd_channels",
     };
 
+    /** Meta AI units: Vibes, Meta AI chats ("hatch") and Imagine pictures of you ("memu"). */
+    private static final String[] META_AI_FEED_UNITS = {
+            "vibes_in_feed_unit",
+            "hatch_immersive_in_feed_unit",
+            "memu_in_feed_unit",
+    };
+
     /**
      * Garbage type token returned for a blocked unit. It matches no real case in
      * Instagram's feed-item parser, so the unit falls through to the parser's
@@ -154,7 +161,8 @@ public final class Block {
         // A new unit starts: whatever media it wraps is parsed right after this.
         MEDIA_IS_AD.get()[0] = false;
         boolean drop = (Config.isAdsBlocked() && equalsAny(key, AD_FEED_UNITS))
-                || (Config.isSuggestedBlocked() && equalsAny(key, SUGGESTED_FEED_UNITS));
+                || (Config.isSuggestedBlocked() && equalsAny(key, SUGGESTED_FEED_UNITS))
+                || (Config.isMetaAiBlocked() && equalsAny(key, META_AI_FEED_UNITS));
         // Debug builds only (see DebugBridge): shows every unit type the timeline
         // actually contains and whether it was dropped — the way to tell a patch
         // that no longer runs from one whose unit list is out of date.

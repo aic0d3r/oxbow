@@ -21,4 +21,9 @@ This project is built with and attributes the following GPLv3 works:
   (notably the network-blocking and clone techniques, and the hook points
   behind Oxbow's downloads and ghost mode) are adapted from Piko.
 
+- HushGram (https://github.com/SysAdminDoc/HushGram) — Oxbow's "Hide Meta AI" patch
+  (patches/.../metaai/HideMetaAiPatch.kt and the extension's MetaAi.java) is adapted from
+  HushGram's Meta AI patch: the share sheet's "hatch" case, the quick-promotion builder hook
+  and the Meta AI feed unit names.
+
 All other code is original to Oxbow and Feurstagram.
