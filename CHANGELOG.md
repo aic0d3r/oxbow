@@ -6,6 +6,8 @@ kept below, unchanged.
 
 ## Unreleased
 
+## Oxbow v453-0-0-55-79, patch bundle 1.2.0
+
 ### Added
 - **Cooldown lock** (Settings > Lock, off by default): a softer alternative to the permanent
   lock. Loosening a block or showing a hidden nav icon starts a wait (1, 6, 24, 48 or 72 h, default
