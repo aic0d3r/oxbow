@@ -36,6 +36,14 @@ kept below, unchanged.
   "has this message been seen" answer can say yes without anything leaving the phone. Approach
   informed by HushGram's read-without-receipt patch; no code ported.
 
+### How to use
+- **Read DMs without a receipt, still cleared for you**: Keep > Ghost mode > *Don't send read
+  receipts*, or hold **New message** in the inbox to flip all three ghost switches at once.
+- **Download a whole carousel**: hold the Download row in a post's `⋯` menu.
+- **Copy a caption**: `⋯` menu of a post or reel > Copy caption.
+- **Cooldown lock**: Settings > Lock.
+- **Hide Meta AI / Muse**: Blocked surfaces > Meta AI and Muse.
+
 ## Oxbow v453-0-0-55-79, patch bundle 1.1.1
 
 ### Fixed
