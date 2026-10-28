@@ -52,9 +52,10 @@ Blocked by default, each with its own switch:
 
 - **Home feed, Reels and Explore**, and the suggested posts mixed into them
 - **Ads**, plus Notes, Instants and the Friends lane
-- **Meta AI and Muse**: Muse's target in the share sheet, Meet Muse promo cards, and Vibes,
-  Meta AI chats and Imagine units in the feed. (Search bar, inbox and reel-menu Meta AI
-  entries are not covered yet.)
+- **Meta AI and Muse**: Muse's target in the share sheet, Meet Muse promo cards, the
+  generated "About this reel" summary with its Ask Meta AI box in post and Reels menus, and
+  Vibes, Meta AI chats and Imagine units in the feed. (Search bar and inbox Meta AI entries
+  are not covered yet.)
 - **Endless scrolling**: a reel opened from a DM, profile or search stays one reel, with
   no "more like this" feed under it
 - **Accidental story replies**: swiping up on a story doesn't open the reply box,

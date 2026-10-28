@@ -223,7 +223,7 @@
     },
     {
       "name": "Hide Meta AI",
-      "description": "Removes Meta AI and Muse from the share sheet and from quick-promotion cards; its feed units (Vibes, Meta AI chats, Imagine) are dropped by the feed item filter. Gated on the Meta AI and Muse toggle.",
+      "description": "Removes Meta AI and Muse from the share sheet, quick-promotion cards and the \"About this reel\" summary with its Ask Meta AI box; its feed units (Vibes, Meta AI chats, Imagine) are dropped by the feed item filter. Gated on the Meta AI and Muse toggle.",
       "default": true,
       "compatiblePackages": [
         {

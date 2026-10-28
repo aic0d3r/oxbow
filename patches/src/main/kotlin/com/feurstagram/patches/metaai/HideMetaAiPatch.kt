@@ -24,6 +24,7 @@ import com.feurstagram.patches.shared.Constants.COMPATIBILITY_INSTAGRAM
 import com.feurstagram.patches.shared.Constants.EXTENSION
 import com.feurstagram.patches.shared.freeLocals
 import com.feurstagram.patches.shared.hasStringEndingWith
+import com.feurstagram.patches.shared.returnEarlyIf
 
 private const val META_AI_CLASS = "Lcom/feurstagram/extension/MetaAi;"
 private const val STRING_EQUALS = "Ljava/lang/String;->equals(Ljava/lang/Object;)Z"
@@ -69,10 +70,22 @@ internal object QuickPromotionControllerFingerprint : Fingerprint(
     },
 )
 
+// The "About this reel" summary (generated text, sources, Ask Meta AI box) in the ⋯ menus of
+// posts and reels comes from one static factory, (UserSession, mediaId, Z, Z) -> its own class.
+// Every menu leaves the whole block out when it answers null, which it does itself when there is
+// no summary, so returning null at its entry removes the lot.
+internal object AboutThisReelFactoryFingerprint : Fingerprint(
+    parameters = listOf("Lcom/instagram/common/session/UserSession;", "Ljava/lang/String;", "Z", "Z"),
+    custom = { method, classDef ->
+        AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == classDef.type
+    },
+)
+
 @Suppress("unused")
 val hideMetaAiPatch = bytecodePatch(
     name = "Hide Meta AI",
-    description = "Removes Meta AI and Muse from the share sheet and from quick-promotion cards; " +
+    description = "Removes Meta AI and Muse from the share sheet, quick-promotion cards and the " +
+        "\"About this reel\" summary with its Ask Meta AI box; " +
         "its feed units (Vibes, Meta AI chats, Imagine) are dropped by the feed item filter. " +
         "Gated on the Meta AI and Muse toggle.",
     default = true,
@@ -94,6 +107,11 @@ val hideMetaAiPatch = bytecodePatch(
                 """,
             )
         }
+
+        AboutThisReelFactoryFingerprint.method.returnEarlyIf(
+            "isMetaAiBlocked",
+            "const/4 v0, 0x0\n            return-object v0",
+        )
 
         QuickPromotionControllerFingerprint.method.apply {
             if (freeLocals() < 1) throw PatchException("$name has no free register for the promotion hook")
