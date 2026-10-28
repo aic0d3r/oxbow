@@ -21,6 +21,7 @@ that pull you back into scrolling.
 | Ghost: no typing indicator | same | not exercised (needs a real chat) |
 | Comments off (feed + reels buttons, composer, sheet, endpoints) | `distraction/CommentsAndScrollPatch.kt`, `Scroll.java`, `Block.java` | yes |
 | No endless scrolling (reel viewer swipe, "more like this" feeds, Inspiration reels) | same | yes (swipe) |
+| No story swipe-up (reply box, reactions, keyboard; Send message still replies) | same (`StorySwipeUpFingerprint`) | yes (photo + video stories) |
 | Hide Home (long-press Messages opens settings) | `Hiders.java`, `HomeTabWatcher.java`, `Config.java` | yes |
 
 Settings: *Keep and privacy* page (downloads, clean links, ghost mode); comments and endless
@@ -34,7 +35,7 @@ A changed default only reaches toggles the user never touched.
 | On | Off |
 |---|---|
 | Block feed, Reels, Explore, Friends lane, Instants, Notes, suggested, ads | Block stories, comments, notifications button |
-| Block endless scrolling | Following-only feed |
+| Block endless scrolling, story swipe-up | Following-only feed |
 | Downloads | Download all carousel slides |
 | Clean links | Ghost: story seen, DM read receipts, typing |
 | Hide Instagram popups | Permanent lock |

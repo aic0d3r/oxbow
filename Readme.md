@@ -54,6 +54,8 @@ Blocked by default, each with its own switch:
 - **Ads**, plus Notes, Instants and the Friends lane
 - **Endless scrolling**: a reel opened from a DM, profile or search stays one reel, with
   no "more like this" feed under it
+- **Accidental story replies**: swiping up on a story doesn't open the reply box,
+  reactions or keyboard. Tap Send message to reply on purpose.
 
 Off by default, one tap away: **comments** (no comment buttons or sheets), **stories** and
 the **notifications button**. Telemetry is always blocked.
