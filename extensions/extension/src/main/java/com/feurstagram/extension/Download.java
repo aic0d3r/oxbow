@@ -4,7 +4,11 @@ import android.app.DownloadManager;
 import android.content.Context;
 import android.net.Uri;
 import android.os.Environment;
+import android.os.SystemClock;
 import android.util.Log;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.lang.reflect.Field;
@@ -197,7 +201,42 @@ public final class Download {
     /** Hook: handles a tapped overflow option of ours; {@code index} is the carousel slide on screen. */
     public static void feedClick(Object option, Context context, Object media, int index) {
         if (isCopyCaption(option)) copyCaption(context, media);
-        else download(context, media, index);
+        else {
+            // A long-press on the row replays its click with this window open: all slides.
+            boolean all = SystemClock.uptimeMillis() < sAllSlidesUntil;
+            sAllSlidesUntil = 0;
+            download(context, media, all ? -1 : index);
+        }
+    }
+
+    private static long sAllSlidesUntil;
+
+    /**
+     * Long-press on the "Download" row of a post's overflow menu saves every slide even with the setting
+     * off. The rows are Instagram-built views, so each is found by its label once the sheet is up
+     * and its click is replayed with {@link #sAllSlidesUntil} set; a post that is no carousel
+     * downloads as usual. Installed by Hiders on the window's layout passes.
+     */
+    static void holdForAllSlides(View root, Context context) {
+        if (!Config.isDownloadEnabled()) return;
+        int sheetId = Hiders.resolveId(context, "layout_container_bottom_sheet");
+        View sheet = sheetId == 0 ? null : root.findViewById(sheetId);
+        if (sheet != null) holdRows(sheet, storyLabel());
+    }
+
+    private static void holdRows(View view, String label) {
+        if (view instanceof TextView && label.contentEquals(((TextView) view).getText())) {
+            View row = (View) view.getParent();
+            for (View v : new View[] {view, row}) {
+                if (v.isClickable() && !v.hasOnLongClickListeners()) v.setOnLongClickListener(h -> {
+                    sAllSlidesUntil = SystemClock.uptimeMillis() + 1500;
+                    return h.performClick();
+                });
+            }
+        } else if (view instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) holdRows(group.getChildAt(i), label);
+        }
     }
 
     /** Copies the post's caption; never throws. */

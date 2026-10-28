@@ -7,6 +7,9 @@ kept below, unchanged.
 ## Unreleased
 
 ### Added
+- **Hold Download to save all slides**: long-press the Download row in a carousel post's `⋯`
+  menu to save every slide even with *Download all slides* off. A normal tap still saves the
+  slide on screen.
 - **Ghost mode shortcut**: long-press **New message** at the top of the inbox to switch story-seen,
   read-receipt and typing hiding on or off together, with a toast and a short haptic (Keep >
   Ghost mode > Long-press New message, on by default). The Messages tab keeps opening settings.

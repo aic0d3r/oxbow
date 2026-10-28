@@ -50,6 +50,11 @@ public final class Hiders {
         observer.addOnGlobalLayoutListener(new VisibilityHider(root, "nav_show_profile", true, true, null, "profile_tab"));
         // Long-press New message in the inbox header toggles Ghost mode.
         observer.addOnGlobalLayoutListener(new GhostShortcut(root));
+        // Long-press Download in a post menu saves every slide.
+        observer.addOnGlobalLayoutListener(() -> {
+            Context context = root.getContext();
+            if (context != null) Download.holdForAllSlides(root.getRootView(), context);
+        });
         // "Friends" tab in the Reels viewer header.
         observer.addOnGlobalLayoutListener(new FriendsLaneHider(root));
         // Cold-start landing-page redirect.

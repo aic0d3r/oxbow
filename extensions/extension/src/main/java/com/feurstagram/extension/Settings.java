@@ -1352,7 +1352,7 @@ public final class Settings {
         if (key.startsWith("nav_show_")) return "Show this icon in the navigation bar.";
         if (key.equals("download_enabled")) return "Download in ⋯ menus. Long-press a profile picture to save it.";
         if (key.equals("copy_caption")) return "Copy caption in the ⋯ menu of posts and reels.";
-        if (key.equals("download_all_slides")) return "Posts with several photos or videos save all of them, not just the one on screen.";
+        if (key.equals("download_all_slides")) return "Posts with several photos or videos save all of them. Off: hold Download to save all once.";
         if (key.equals("clean_links")) return "Remove tracking (igsh, utm) from links you copy or share.";
         if (key.equals("ghost_story_seen")) return "Watch stories without appearing in the viewer list.";
         if (key.equals("ghost_dm_seen")) return "Chats you open stay unread for the sender, and for you.";
