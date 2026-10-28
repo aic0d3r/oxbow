@@ -138,6 +138,19 @@ public final class Config {
     public static boolean isDmSeenHidden() { return getBlocked("ghost_dm_seen", false); }
     /** Ghost mode: typing in a chat does not show "typing…" to the other side. */
     public static boolean isTypingHidden() { return getBlocked("ghost_typing", false); }
+    /** Long-pressing New message in the inbox flips the three Ghost switches together. */
+    public static boolean isGhostShortcut() { return getBlocked("ghost_shortcut", true); }
+
+    /** Any Ghost switch on turns all off, otherwise all on. Returns the new state. */
+    public static boolean toggleGhostMode() {
+        SharedPreferences prefs = prefs();
+        if (prefs == null) return false;
+        boolean on = !(isStorySeenHidden() || isDmSeenHidden() || isTypingHidden());
+        prefs.edit().putBoolean("ghost_story_seen", on).putBoolean("ghost_dm_seen", on)
+                .putBoolean("ghost_typing", on).apply();
+        return on;
+    }
+
     /** Copied and shared links lose Instagram's tracking parameters (igsh, utm_*...). */
     public static boolean isCleanLinks() { return getBlocked("clean_links", true); }
     /** Comments: no comment buttons, no comment sheets. Lockable like every block_*. */

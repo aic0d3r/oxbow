@@ -84,7 +84,8 @@ until you reinstall.
 - **HD profile pictures**: long-press the avatar on a profile to save it in full
   resolution (a short tap still opens Instagram's preview).
 - **Ghost mode** (off by default): watch stories without appearing as a viewer, read DMs
-  without sending read receipts, type without the typing indicator.
+  without sending read receipts, type without the typing indicator. Long-press **New
+  message** at the top of your inbox to flip all three at once.
 - **Tracker-free links**: copied and shared links keep only what's needed to open them;
   `igsh`, `utm_*`, `obrf` and the rest are stripped.
 

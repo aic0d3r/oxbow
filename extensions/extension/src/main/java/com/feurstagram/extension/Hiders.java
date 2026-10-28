@@ -2,10 +2,13 @@ package com.feurstagram.extension;
 
 import android.content.Context;
 import android.content.res.Resources;
+import android.os.Build;
+import android.view.HapticFeedbackConstants;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.widget.HorizontalScrollView;
+import android.widget.Toast;
 
 /**
  * UI-level hiders and the landing-page redirect, all installed on the main
@@ -45,6 +48,8 @@ public final class Hiders {
         observer.addOnGlobalLayoutListener(new VisibilityHider(root, "nav_show_create", true, true, null, "creation_tab"));
         observer.addOnGlobalLayoutListener(new VisibilityHider(root, "nav_show_direct", true, true, null, "direct_tab"));
         observer.addOnGlobalLayoutListener(new VisibilityHider(root, "nav_show_profile", true, true, null, "profile_tab"));
+        // Long-press New message in the inbox header toggles Ghost mode.
+        observer.addOnGlobalLayoutListener(new GhostShortcut(root));
         // "Friends" tab in the Reels viewer header.
         observer.addOnGlobalLayoutListener(new FriendsLaneHider(root));
         // Cold-start landing-page redirect.
@@ -178,6 +183,44 @@ public final class Hiders {
             for (int i = 1; i < strip.getChildCount(); i++) {
                 strip.getChildAt(i).setVisibility(visibility);
             }
+        }
+    }
+
+    /**
+     * Gives the inbox header's New message button a long-press that toggles Ghost mode. The tab
+     * is not usable for it: long-pressing Messages opens settings. The button has no id and a
+     * translated description, so it is the child of the header's end-button row. The listener
+     * is installed once per view and checks the setting at press time.
+     */
+    static final class GhostShortcut implements ViewTreeObserver.OnGlobalLayoutListener {
+        private final ViewGroup root;
+
+        GhostShortcut(ViewGroup root) {
+            this.root = root;
+        }
+
+        @Override
+        public void onGlobalLayout() {
+            Context context = root.getContext();
+            if (context == null) return;
+            int barId = resolveId(context, "direct_inbox_action_bar");
+            int endId = resolveId(context, "action_bar_end_action_buttons");
+            if (barId == 0 || endId == 0) return;
+            View bar = root.getRootView().findViewById(barId);
+            View end = bar == null ? null : bar.findViewById(endId);
+            // shortcut: first child, since New message is the only button there on 453; revisit if Instagram adds one.
+            if (!(end instanceof ViewGroup) || ((ViewGroup) end).getChildCount() == 0) return;
+            View button = ((ViewGroup) end).getChildAt(0);
+            if (button.hasOnLongClickListeners()) return;
+            button.setOnLongClickListener(v -> {
+                if (!Config.isGhostShortcut()) return false;
+                boolean on = Config.toggleGhostMode();
+                v.performHapticFeedback(Build.VERSION.SDK_INT >= 30
+                        ? HapticFeedbackConstants.CONFIRM : HapticFeedbackConstants.VIRTUAL_KEY);
+                Toast.makeText(v.getContext(), on ? "Ghost mode on" : "Ghost mode off",
+                        Toast.LENGTH_SHORT).show();
+                return true;
+            });
         }
     }
 

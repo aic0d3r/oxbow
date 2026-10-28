@@ -7,6 +7,10 @@ kept below, unchanged.
 ## Unreleased
 
 ### Added
+- **Ghost mode shortcut**: long-press **New message** at the top of the inbox to switch story-seen,
+  read-receipt and typing hiding on or off together, with a toast and a short haptic (Keep >
+  Ghost mode > Long-press New message, on by default). The Messages tab keeps opening settings.
+  Idea from HushGram; the button is found at runtime, no code ported.
 - **Hide Meta AI / Muse** (*Blocked surfaces* > Meta AI and Muse, on by default): removes Muse's
   target from the share sheet, the Meet Muse promo cards and the generated "About this reel"
   summary (with its Ask Meta AI box) in post and Reels menus, and drops Vibes, Meta AI chats and
