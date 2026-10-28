@@ -2,6 +2,7 @@ package com.feurstagram.extension;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.os.SystemClock;
 
 import java.util.HashMap;
 
@@ -66,6 +67,11 @@ public final class Config {
                 && wasHiddenAtBaseline(key)) {
             return;
         }
+        // The cooldown lock turns the same loosening into a request that waits.
+        if (needsCooldown(key, value)) {
+            startCooldown(key);
+            return;
+        }
         SharedPreferences prefs = prefs();
         if (prefs == null) return;
         prefs.edit().putBoolean(key, value).apply();
@@ -100,6 +106,99 @@ public final class Config {
         SharedPreferences prefs = prefs();
         if (prefs == null) return;
         prefs.edit().putBoolean("hardcore_mode", true).apply();
+    }
+
+    // --- Cooldown lock: a softer, time-delayed alternative to the permanent lock ---
+
+    public static final int[] COOLDOWN_HOURS = {1, 6, 24, 48, 72};
+    private static final String PENDING = "pending_";
+
+    /** Whether the cooldown was already on when the settings page opened (see captureBaseline). */
+    private static boolean sCooldownOnAtOpen;
+
+    /** Off by default. The permanent lock wins when both are on. */
+    public static boolean isCooldownEnabled() { return getBlocked("cooldown_enabled", false); }
+
+    public static int getCooldownHours() {
+        SharedPreferences prefs = prefs();
+        return prefs == null ? 24 : prefs.getInt("cooldown_hours", 24);
+    }
+
+    public static void setCooldownHours(int hours) {
+        SharedPreferences prefs = prefs();
+        if (prefs != null) prefs.edit().putInt("cooldown_hours", hours).apply();
+    }
+
+    /**
+     * The cooldown's own switch and length stay fixed in a session that opened with it on, or it
+     * would be a way around itself. Switched on in the current session, both can still be changed.
+     */
+    public static boolean isCooldownSticky() { return isCooldownEnabled() && sCooldownOnAtOpen; }
+
+    /** Loosening a lockable surface that was hidden when settings opened waits instead. */
+    public static boolean needsCooldown(String key, boolean value) {
+        return !isHardcoreMode() && isCooldownEnabled() && isLockable(key)
+                && !hidesSurface(key, value) && wasHiddenAtBaseline(key);
+    }
+
+    /**
+     * Stored per key as "elapsedRealtime|wall clock|duration ms", so it survives restarts and the
+     * length is fixed when the request is made. No-op if the key is already waiting.
+     */
+    public static void startCooldown(String key) {
+        SharedPreferences prefs = prefs();
+        if (prefs == null || prefs.contains(PENDING + key)) return;
+        prefs.edit().putString(PENDING + key, SystemClock.elapsedRealtime() + "|" + System.currentTimeMillis()
+                + "|" + getCooldownHours() * 3_600_000L).apply();
+    }
+
+    public static void cancelCooldown(String key) {
+        SharedPreferences prefs = prefs();
+        if (prefs != null) prefs.edit().remove(PENDING + key).apply();
+    }
+
+    /** Keys with a pending request, in a stable order. */
+    public static java.util.List<String> pendingKeys() {
+        java.util.List<String> keys = new java.util.ArrayList<>();
+        SharedPreferences prefs = prefs();
+        if (prefs != null) {
+            for (String k : prefs.getAll().keySet()) {
+                if (k.startsWith(PENDING)) keys.add(k.substring(PENDING.length()));
+            }
+        }
+        java.util.Collections.sort(keys);
+        return keys;
+    }
+
+    /**
+     * Milliseconds left for a pending key (0 = ready), or -1 when none is pending. Uses
+     * elapsedRealtime, which the system clock can't move. shortcut: it restarts at a reboot, so
+     * then the wall clock decides and setting it forward skips the wait; compare the boot count to close that.
+     */
+    public static long cooldownLeft(String key) {
+        SharedPreferences prefs = prefs();
+        String stored = prefs == null ? null : prefs.getString(PENDING + key, null);
+        if (stored == null) return -1;
+        try {
+            String[] p = stored.split("\\|");
+            long elapsed = SystemClock.elapsedRealtime();
+            long passed = elapsed >= Long.parseLong(p[0]) ? elapsed - Long.parseLong(p[0])
+                    : Math.max(0, System.currentTimeMillis() - Long.parseLong(p[1]));
+            return Math.max(0, Long.parseLong(p[2]) - passed);
+        } catch (RuntimeException e) {
+            return Integer.MAX_VALUE; // unreadable: never ready, can still be cancelled
+        }
+    }
+
+    /** Applies a request whose wait is over. False while it is still waiting. */
+    public static boolean applyCooldown(String key) {
+        if (isHardcoreMode() || cooldownLeft(key) != 0) return false; // the permanent lock wins
+        SharedPreferences prefs = prefs();
+        if (prefs == null) return false;
+        // Loosened: block_* off, nav_show_* on, and the cooldown itself off.
+        prefs.edit().putBoolean(key, key.startsWith("nav_show_")).remove(PENDING + key).apply();
+        setNeedsRestart();
+        return true;
     }
 
     /** Whether to check GitHub for a newer release on launch. On by default. */
@@ -289,6 +388,7 @@ public final class Config {
             baseline.put(key, getBlocked(key, navDefault(key)));
         }
         sBaseline = baseline;
+        sCooldownOnAtOpen = isCooldownEnabled();
     }
 
     /**

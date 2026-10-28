@@ -7,6 +7,12 @@ kept below, unchanged.
 ## Unreleased
 
 ### Added
+- **Cooldown lock** (Settings > Lock, off by default): a softer alternative to the permanent
+  lock. Loosening a block or showing a hidden nav icon starts a wait (1, 6, 24, 48 or 72 h, default
+  24 h) instead of applying; when it ends you confirm it. Requests survive restarts and can be
+  cancelled, the page shows what is waiting and the time left, and tightening stays instant. The
+  wait runs on the device's uptime clock, so moving the date back doesn't skip it. Once on, the
+  cooldown can only be switched off through the same wait. The permanent lock wins if both are on.
 - **Hold Download to save all slides**: long-press the Download row in a carousel post's `⋯`
   menu to save every slide even with *Download all slides* off. A normal tap still saves the
   slide on screen.

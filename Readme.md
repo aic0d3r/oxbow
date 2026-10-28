@@ -64,7 +64,9 @@ Blocked by default, each with its own switch:
 Off by default, one tap away: **comments** (no comment buttons or sheets), **stories** and
 the **notifications button**. Telemetry is always blocked.
 
-Want your choices to stick? **Permanent lock** lets you tighten blocks but not loosen them
+Want your choices to stick, but not forever? **Cooldown** (Settings > Lock, off by default)
+makes loosening a block wait 1 to 72 hours, then you confirm it; you can cancel meanwhile.
+Want them to stick for good? **Permanent lock** lets you tighten blocks but not loosen them
 until you reinstall.
 
 <p align="center">

@@ -491,6 +491,9 @@ public final class Settings {
             subtitle.setText(hardcore
                     ? "Permanent lock is on. You can tighten blocks but not loosen them. "
                             + "Reinstall to fully unlock."
+                    : Config.isCooldownEnabled()
+                    ? "Cooldown is on: loosening a block waits " + Config.getCooldownHours()
+                            + " h. Tap Done to clear the cache and restart."
                     : "Choose what to hide. Tap Done to clear the cache and restart.");
             swap(animate, -1, () -> buildOverview(context, column, this));
         }
@@ -637,6 +640,8 @@ public final class Settings {
         addSectionRow(context, keep, "save", "Keep and privacy", keepSummary(),
                 () -> pages.open("Keep and privacy", "Save what matters, leave no trace.",
                         Settings::buildKeep));
+        addSectionRow(context, keep, "lock", "Lock", lockSummary(),
+                () -> pages.open("Lock", "Slow yourself down before undoing a block.", Settings::buildLock));
         sealGroup(context, keep);
 
         LinearLayout app = addSection(context, column, "App");
@@ -803,10 +808,146 @@ public final class Settings {
         column.addView(upstream, stackedButtonParams(context, 10));
     }
 
+    private static String lockSummary() {
+        if (Config.isHardcoreMode()) return "Permanent lock on";
+        int waiting = Config.pendingKeys().size();
+        String waits = waiting == 0 ? "" : ", " + waiting + " waiting";
+        return Config.isCooldownEnabled() ? "Cooldown " + Config.getCooldownHours() + " h" + waits : "Off" + waits;
+    }
+
     private static String displaySummary() {
         String dark = Config.isForceSdr() ? "Force dark on" : "Force dark off";
         String popups = Config.arePopupsHidden() ? "popups hidden" : "popups shown";
         return dark + ", " + popups;
+    }
+
+    // --- Lock page: the cooldown ------------------------------------------------
+
+    private static void buildLock(Context context, LinearLayout column) {
+        if (Config.isHardcoreMode()) {
+            LinearLayout on = addGroup(context, column);
+            makeRow(context, on, "Permanent lock is on",
+                    "It wins over the cooldown: blocks can be tightened, never loosened. Reinstall to unlock.");
+            sealGroup(context, on);
+            return;
+        }
+        LinearLayout waiting = new LinearLayout(context);
+        waiting.setOrientation(LinearLayout.VERTICAL);
+
+        LinearLayout group = addGroup(context, column);
+        LinearLayout row = makeRow(context, group, "Cooldown",
+                "Loosening a block or showing a hidden icon starts a wait; you confirm when it ends. "
+                        + "Tightening stays instant.");
+        ExpressiveSwitch toggle = new ExpressiveSwitch(context);
+        toggle.setChecked(Config.isCooldownEnabled());
+        toggle.setContentDescription("Cooldown");
+        Runnable[] render = new Runnable[1];
+        toggle.setOnCheckedChangeListener((btn, on) -> {
+            if (!on && Config.isCooldownSticky()) {
+                // Switching it off is itself loosening, so it waits too.
+                btn.setChecked(true);
+                requestCooldown(context, "cooldown_enabled");
+                render[0].run();
+                return;
+            }
+            Config.setBlocked("cooldown_enabled", on);
+        });
+        row.addView(toggle);
+        row.setOnClickListener(v -> toggle.toggle());
+        sealGroup(context, group);
+
+        LinearLayout hours = addSection(context, column, "Wait");
+        List<RadioButton> marks = new ArrayList<>();
+        for (int h : Config.COOLDOWN_HOURS) {
+            LinearLayout hourRow = makeRow(context, hours, h == 1 ? "1 hour" : h + " hours", null);
+            RadioButton mark = new RadioButton(context);
+            mark.setClickable(false);
+            mark.setFocusable(false);
+            mark.setButtonTintList(buildStateList(PRIMARY, OUTLINE));
+            mark.setChecked(h == Config.getCooldownHours());
+            hourRow.addView(mark);
+            marks.add(mark);
+            hourRow.setAlpha(Config.isCooldownSticky() ? 0.38f : 1f);
+            hourRow.setOnClickListener(v -> {
+                if (Config.isCooldownSticky()) {
+                    Toast.makeText(context, "Turn the cooldown off first to change the wait.",
+                            Toast.LENGTH_LONG).show();
+                    return;
+                }
+                Config.setCooldownHours(h);
+                for (int i = 0; i < marks.size(); i++) marks.get(i).setChecked(Config.COOLDOWN_HOURS[i] == h);
+            });
+        }
+        sealGroup(context, hours);
+
+        addSectionLabel(context, column, "Waiting");
+        column.addView(waiting);
+        render[0] = () -> {
+            waiting.removeAllViews();
+            List<String> keys = Config.pendingKeys();
+            if (keys.isEmpty()) {
+                LinearLayout none = addGroup(context, waiting);
+                makeRow(context, none, "Nothing waiting", null);
+                sealGroup(context, none);
+            }
+            for (String key : keys) addPendingItem(context, waiting, key, render[0]);
+            if (waiting.isAttachedToWindow()) {
+                waiting.removeCallbacks(render[0]);
+                waiting.postDelayed(render[0], 30_000L); // keeps the time left current; stops when the page is left
+            }
+        };
+        render[0].run();
+    }
+
+    /** Starts the wait for a loosening and says so, or says one is already running. */
+    private static void requestCooldown(Context context, String key) {
+        long left = Config.cooldownLeft(key);
+        if (left < 0) Config.startCooldown(key);
+        Toast.makeText(context, left < 0 ? "Waiting " + Config.getCooldownHours() + " h. See Lock in settings."
+                : "Already waiting: " + timeLeft(left) + " left", Toast.LENGTH_LONG).show();
+    }
+
+    private static void addPendingItem(Context context, LinearLayout parent, String key, Runnable refresh) {
+        long left = Config.cooldownLeft(key);
+        boolean ready = left == 0;
+        LinearLayout group = addGroup(context, parent);
+        makeRow(context, group, pendingLabel(key), ready ? "Ready. Confirm to apply it." : timeLeft(left) + " left");
+
+        LinearLayout buttons = new LinearLayout(context);
+        buttons.setPadding(dp(context, 12), dp(context, 4), dp(context, 12), dp(context, 12));
+        Button cancel = makeButton(context, "Cancel request", 0, ON_SURFACE, false);
+        cancel.setBackground(outlined(context, OUTLINE_VARIANT));
+        cancel.setOnClickListener(v -> {
+            Config.cancelCooldown(key);
+            refresh.run();
+        });
+        buttons.addView(cancel, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        if (ready) {
+            buttons.addView(new View(context), new LinearLayout.LayoutParams(dp(context, 8), 1));
+            Button apply = makeButton(context, "Apply", PRIMARY, ON_PRIMARY, true);
+            apply.setOnClickListener(v -> {
+                if (!Config.applyCooldown(key)) Toast.makeText(context, "Not ready yet", Toast.LENGTH_SHORT).show();
+                refresh.run();
+            });
+            buttons.addView(apply, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        }
+        group.addView(buttons);
+        sealGroup(context, group);
+    }
+
+    private static String pendingLabel(String key) {
+        if (key.equals("cooldown_enabled")) return "Turn the cooldown off";
+        if (key.startsWith("nav_show_")) {
+            String tab = key.substring(9);
+            return "Show the " + (tab.equals("direct") ? "messages" : tab) + " icon";
+        }
+        return "Unblock " + surfaceLabel(key);
+    }
+
+    private static String timeLeft(long ms) {
+        long minutes = (ms + 59_999L) / 60_000L;
+        if (minutes < 60) return minutes + " min";
+        return minutes / 60 + " h" + (minutes % 60 == 0 ? "" : " " + minutes % 60 + " min");
     }
 
     private static String landingLabel(String value) {
@@ -1313,6 +1454,11 @@ public final class Settings {
             if (Config.isHardcoreMode() && Config.isLockable(key)
                     && !Config.hidesSurface(key, isChecked) && Config.wasHiddenAtBaseline(key)) {
                 btn.setChecked(!isChecked);
+                return;
+            }
+            if (Config.needsCooldown(key, isChecked)) {
+                btn.setChecked(!isChecked);
+                requestCooldown(context, key);
                 return;
             }
             if (Config.wouldLockOutSettings(key, isChecked)) {
