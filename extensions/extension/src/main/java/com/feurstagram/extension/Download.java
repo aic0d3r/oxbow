@@ -27,6 +27,9 @@ public final class Download {
 
     private static final String TAG = "OxbowDownload";
     private static final String FOLDER = "Oxbow";
+    private static final String COPY_CAPTION = "Copy caption";
+    // shortcut: borrows Instagram's fundraiser-link row (copy icon, never on normal posts), so a fundraiser post's own row would also copy the caption; add a dedicated enum value to fix.
+    private static final String COPY_CAPTION_OPTION = "COPY_FUNDRAISER_LINK";
 
     private Download() {}
 
@@ -41,7 +44,11 @@ public final class Download {
      * static (state, Option, creator, CharSequence, ArrayList, boolean).
      */
     public static void addMenuItem(Object creator, ArrayList<Object> options) {
-        if (!Config.isDownloadEnabled()) return;
+        if (Config.isDownloadEnabled()) addOption(creator, options, "DOWNLOAD", label(creator));
+        if (Config.isCopyCaptionEnabled()) addOption(creator, options, COPY_CAPTION_OPTION, COPY_CAPTION);
+    }
+
+    private static void addOption(Object creator, ArrayList<Object> options, String name, CharSequence label) {
         try {
             for (Method m : creator.getClass().getDeclaredMethods()) {
                 Class<?>[] p = m.getParameterTypes();
@@ -49,9 +56,9 @@ public final class Download {
                         || p[5] != boolean.class || !p[1].isEnum()
                         || !p[1].getName().endsWith("MediaOption$Option")) continue;
                 @SuppressWarnings({"unchecked", "rawtypes"})
-                Object download = Enum.valueOf((Class) p[1], "DOWNLOAD");
+                Object option = Enum.valueOf((Class) p[1], name);
                 m.setAccessible(true);
-                m.invoke(null, null, download, creator, label(creator), options, false);
+                m.invoke(null, null, option, creator, label, options, false);
                 return;
             }
             Log.w(TAG, "menu row adder not found");
@@ -68,17 +75,23 @@ public final class Download {
     @SuppressWarnings({"unchecked", "rawtypes"})
     public static List<Object> allowInMenu(List<Object> allowed) {
         try {
-            if (allowed.isEmpty() || !Config.isDownloadEnabled()) return allowed;
+            if (allowed.isEmpty()) return allowed;
             Class option = ((Enum) allowed.get(0)).getDeclaringClass();
-            Object download = Enum.valueOf(option, "DOWNLOAD");
-            if (allowed.contains(download)) return allowed;
             List<Object> out = new ArrayList<>(allowed);
-            int report = out.indexOf(Enum.valueOf(option, "REPORT"));
-            out.add(report < 0 ? out.size() : report, download);
+            if (Config.isDownloadEnabled()) allowAboveReport(out, option, "DOWNLOAD");
+            if (Config.isCopyCaptionEnabled()) allowAboveReport(out, option, COPY_CAPTION_OPTION);
             return out;
         } catch (Throwable t) {
             return allowed;
         }
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void allowAboveReport(List<Object> out, Class option, String name) {
+        Object o = Enum.valueOf(option, name);
+        if (out.contains(o)) return;
+        int report = out.indexOf(Enum.valueOf(option, "REPORT"));
+        out.add(report < 0 ? out.size() : report, o);
     }
 
     private static String label(Object creator) {
@@ -120,12 +133,15 @@ public final class Download {
 
     /** Hook: Instagram's native download icon for our row, 0 to let Instagram decide. */
     public static int storyIcon(CharSequence label) {
-        if (!isStoryLabel(label)) return 0;
+        return isStoryLabel(label) ? iconOf("DOWNLOAD") : 0;
+    }
+
+    private static int iconOf(String name) {
         try {
             Class<?> option = Class.forName("com.instagram.feed.media.mediaoption.MediaOption$Option");
             @SuppressWarnings({"unchecked", "rawtypes"})
-            Object download = Enum.valueOf((Class) option, "DOWNLOAD");
-            return option.getField("iconDrawable").getInt(download);
+            Object value = Enum.valueOf((Class) option, name);
+            return option.getField("iconDrawable").getInt(value);
         } catch (Throwable t) {
             return 0;
         }
@@ -168,6 +184,41 @@ public final class Download {
                 && option instanceof Enum && "DOWNLOAD".equals(((Enum<?>) option).name());
     }
 
+    /** Hook: true when the tapped overflow option is one of ours (Download or Copy caption). */
+    public static boolean isOurs(Object option) {
+        return isDownload(option) || isCopyCaption(option);
+    }
+
+    private static boolean isCopyCaption(Object option) {
+        return Config.isCopyCaptionEnabled()
+                && option instanceof Enum && COPY_CAPTION_OPTION.equals(((Enum<?>) option).name());
+    }
+
+    /** Hook: handles a tapped overflow option of ours; {@code index} is the carousel slide on screen. */
+    public static void feedClick(Object option, Context context, Object media, int index) {
+        if (isCopyCaption(option)) copyCaption(context, media);
+        else download(context, media, index);
+    }
+
+    /** Copies the post's caption; never throws. */
+    static void copyCaption(Context context, Object media) {
+        try {
+            Node root = Node.of(media);
+            Node caption = root == null ? null : root.tree("caption");
+            String text = caption == null ? null : caption.string("text");
+            if (text == null || text.isEmpty()) {
+                toast(context, "No caption to copy");
+                return;
+            }
+            ((android.content.ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE))
+                    .setPrimaryClip(android.content.ClipData.newPlainText("caption", text));
+            toast(context, "Caption copied");
+        } catch (Throwable t) {
+            Log.w(TAG, "copy caption failed", t);
+            toast(context, "Couldn't copy the caption");
+        }
+    }
+
     // ---- Reels viewer (reels opened from DMs, search...) ----
 
     /**
@@ -176,7 +227,7 @@ public final class Download {
      * variants of that menu and only some carry its own Download, so this one is ours.
      */
     public static void addClipsRow(Object helper, Object view, Object sheet) {
-        if (!Config.isDownloadEnabled() || helper == null || sheet == null) return;
+        if (!(Config.isDownloadEnabled() || Config.isCopyCaptionEnabled()) || helper == null || sheet == null) return;
         try {
             Context context = null;
             Object media = null;
@@ -189,14 +240,13 @@ public final class Download {
                 }
             }
             if (context == null || media == null) return;
-            String label = storyLabel();
             java.util.LinkedList<Object> rows = null;
             for (Field f : sheet.getClass().getDeclaredFields()) {
                 if (f.getType() != java.util.LinkedList.class) continue;
                 f.setAccessible(true);
                 rows = (java.util.LinkedList<Object>) f.get(sheet);
             }
-            if (rows == null || rows.isEmpty() || hasRow(rows, label)) return; // sub-sheets start empty
+            if (rows == null || rows.isEmpty()) return; // sub-sheets start empty
             Method add = null;
             for (Method m : sheet.getClass().getDeclaredMethods()) {
                 Class<?>[] p = m.getParameterTypes();
@@ -205,19 +255,29 @@ public final class Download {
                         && p[5] == boolean.class && p[6] == boolean.class) add = m;
             }
             if (add == null) return;
+            add.setAccessible(true);
             final Context ctx = context;
             final Object item = media;
-            android.view.View.OnClickListener onClick = v -> {
-                download(ctx, item, -1);
-                // Instagram's own rows close the sheet; it lives in the activity, so Back does.
-                if (ctx instanceof android.app.Activity) ((android.app.Activity) ctx).onBackPressed();
-            };
-            add.setAccessible(true);
-            add.invoke(sheet, context, onClick, label, null, storyIcon(label), false, false);
-            if (rows.size() >= 2) rows.add(rows.size() - 2, rows.removeLast()); // above Report
+            if (Config.isDownloadEnabled() && !hasRow(rows, storyLabel())) {
+                addClipsRow(add, sheet, rows, ctx, storyLabel(), iconOf("DOWNLOAD"), () -> download(ctx, item, -1));
+            }
+            if (Config.isCopyCaptionEnabled() && !hasRow(rows, COPY_CAPTION)) {
+                addClipsRow(add, sheet, rows, ctx, COPY_CAPTION, iconOf(COPY_CAPTION_OPTION), () -> copyCaption(ctx, item));
+            }
         } catch (Throwable t) {
             Log.w(TAG, "could not add the reels menu row", t);
         }
+    }
+
+    private static void addClipsRow(Method add, Object sheet, java.util.LinkedList<Object> rows, Context ctx,
+            String label, int icon, Runnable action) throws Exception {
+        android.view.View.OnClickListener onClick = v -> {
+            action.run();
+            // Instagram's own rows close the sheet; it lives in the activity, so Back does.
+            if (ctx instanceof android.app.Activity) ((android.app.Activity) ctx).onBackPressed();
+        };
+        add.invoke(sheet, ctx, onClick, label, null, icon, false, false);
+        if (rows.size() >= 2) rows.add(rows.size() - 2, rows.removeLast()); // above Report
     }
 
     private static boolean hasRow(java.util.List<Object> rows, String label) {

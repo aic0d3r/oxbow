@@ -358,7 +358,7 @@ val downloadPatch = bytecodePatch(
                 0,
                 """
                     move-object/from16 v0, p1
-                    invoke-static { v0 }, $DOWNLOAD_CLASS->isDownload(Ljava/lang/Object;)Z
+                    invoke-static { v0 }, $DOWNLOAD_CLASS->isOurs(Ljava/lang/Object;)Z
                     move-result v1
                     if-eqz v1, :instagram
                     move-object/from16 v0, p0
@@ -366,7 +366,8 @@ val downloadPatch = bytecodePatch(
                     invoke-static { v0 }, $mediaGetter
                     move-result-object v2
                     $loadIndex
-                    invoke-static { v1, v2, v3 }, $DOWNLOAD_CLASS->download(Landroid/content/Context;Ljava/lang/Object;I)V
+                    move-object/from16 v0, p1
+                    invoke-static { v0, v1, v2, v3 }, $DOWNLOAD_CLASS->feedClick(Ljava/lang/Object;Landroid/content/Context;Ljava/lang/Object;I)V
                     return-void
                 """,
                 ExternalLabel("instagram", getInstruction(0)),

@@ -128,6 +128,8 @@ public final class Config {
 
     /** Download row in post, reel, story and highlight menus; long-press avatar for the HD picture. */
     public static boolean isDownloadEnabled() { return getBlocked("download_enabled", true); }
+    /** "Copy caption" row beside Download in post and reel menus. */
+    public static boolean isCopyCaptionEnabled() { return getBlocked("copy_caption", true); }
     /** Downloading a carousel post saves every slide, not just the one on screen. */
     public static boolean isDownloadAllSlides() { return getBlocked("download_all_slides", false); }
     /** Ghost mode: stories you watch are not reported as seen. */

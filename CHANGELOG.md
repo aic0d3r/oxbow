@@ -4,6 +4,11 @@ All notable changes to Oxbow are documented in this file. Oxbow is a fork of
 [FeurStagram](https://github.com/jean-voila/FeurStagram); its history before the fork is
 kept below, unchanged.
 
+## Unreleased
+
+### Added
+- **Copy caption** in the `⋯` menu of posts and Reels (Keep > Copy caption, on by default).
+
 ## Oxbow v453-0-0-55-79, patch bundle 1.1.1
 
 ### Fixed

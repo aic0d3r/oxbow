@@ -76,6 +76,7 @@ until you reinstall.
   native "Download" row in Instagram's own `⋯` menu. Saved in the highest quality
   Instagram serves, to `Pictures/Oxbow` and `Movies/Oxbow`, with no storage permission.
   Optionally save every slide of a carousel at once.
+- **Copy caption**: a row beside Download in the `⋯` menu of posts and Reels.
 - **HD profile pictures**: long-press the avatar on a profile to save it in full
   resolution (a short tap still opens Instagram's preview).
 - **Ghost mode** (off by default): watch stories without appearing as a viewer, read DMs

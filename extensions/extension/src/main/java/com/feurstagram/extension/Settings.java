@@ -748,6 +748,7 @@ public final class Settings {
     private static void buildKeep(Context context, LinearLayout column) {
         LinearLayout keep = addSection(context, column, "Keep");
         addRow(context, keep, "Downloads", "download_enabled", Config.isDownloadEnabled());
+        addRow(context, keep, "Copy caption", "copy_caption", Config.isCopyCaptionEnabled());
         addRow(context, keep, "Download all slides", "download_all_slides", Config.isDownloadAllSlides());
         addRow(context, keep, "Clean shared links", "clean_links", Config.isCleanLinks());
         sealGroup(context, keep);
@@ -1346,6 +1347,7 @@ public final class Settings {
         if (key.equals("nav_show_home")) return "Hide it and long-press Messages to open these settings.";
         if (key.startsWith("nav_show_")) return "Show this icon in the navigation bar.";
         if (key.equals("download_enabled")) return "Download in ⋯ menus. Long-press a profile picture to save it.";
+        if (key.equals("copy_caption")) return "Copy caption in the ⋯ menu of posts and reels.";
         if (key.equals("download_all_slides")) return "Posts with several photos or videos save all of them, not just the one on screen.";
         if (key.equals("clean_links")) return "Remove tracking (igsh, utm) from links you copy or share.";
         if (key.equals("ghost_story_seen")) return "Watch stories without appearing in the viewer list.";
