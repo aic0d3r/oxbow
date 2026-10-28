@@ -208,17 +208,18 @@ val feedItemFilterPatch = bytecodePatch(
             )
         } else if (MediaParseWrapperFingerprint.methodOrNull == null) {
             // Instagram 453 inlined the codec into the one parser method that carries the two
-            // error strings. It builds one media — carousel children included — per call, so
-            // reset the ad flag at entry and pass every returned Media through the filter:
-            // that replaces both the dead wrapper's codec hook and its feed-unit filter.
+            // error strings, and it calls itself for carousel children. Hook its field-name
+            // hash like the codec's, open an ad flag at entry and close it at every return,
+            // which also filters the media: that replaces the dead wrapper's feed-unit filter.
             MediaParseInlineFingerprint.method.apply {
+                hookMediaFieldHash()
                 addInstructions(0, "invoke-static { }, $BLOCK_CLASS->onMediaParseStart()V")
                 instructions.filter { it.opcode == Opcode.RETURN_OBJECT }.toList().reversed().forEach { ret ->
                     val reg = (ret as OneRegisterInstruction).registerA
                     addInstructions(
                         ret.location.index,
                         "invoke-static/range { v$reg .. v$reg }, " +
-                            "$BLOCK_CLASS->filterFeedMedia(Ljava/lang/Object;)Ljava/lang/Object;\n" +
+                            "$BLOCK_CLASS->onMediaParseEnd(Ljava/lang/Object;)Ljava/lang/Object;\n" +
                             "move-result-object v$reg\n" +
                             "check-cast v$reg, $MEDIA_TYPE",
                     )

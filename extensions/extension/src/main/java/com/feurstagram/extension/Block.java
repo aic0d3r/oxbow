@@ -198,11 +198,42 @@ public final class Block {
     }
 
     /**
-     * Tree-parse hook (Instagram 453+): the tree media builder parses one media — carousel
-     * children included — in a single call, so the flag resets per media at its entry.
+     * Ad flags of the media parses still open on this thread (Instagram 453+). The parser
+     * calls itself for carousel children, so a child must not clear its parent's flag.
+     */
+    private static final ThreadLocal<java.util.ArrayDeque<Boolean>> OPEN_MEDIA =
+            new ThreadLocal<java.util.ArrayDeque<Boolean>>() {
+                @Override protected java.util.ArrayDeque<Boolean> initialValue() {
+                    return new java.util.ArrayDeque<>();
+                }
+            };
+
+    /**
+     * Media parse entry (Instagram 453+): saves the enclosing media's flag and starts a
+     * clean one. A parse that throws never reaches {@link #onMediaParseEnd}, so the stack
+     * is capped rather than trusted to balance.
      */
     public static void onMediaParseStart() {
-        MEDIA_IS_AD.get()[0] = false;
+        java.util.ArrayDeque<Boolean> open = OPEN_MEDIA.get();
+        if (open.size() > 64) open.clear();
+        boolean[] flag = MEDIA_IS_AD.get();
+        open.push(flag[0]);
+        flag[0] = false;
+    }
+
+    /**
+     * Media parse exit (Instagram 453+): filters this media, then restores the enclosing
+     * media's flag, so a parent whose {@code injected} field came before its carousel stays
+     * flagged. Only ads carry that field, so a flagged child flags its parent too.
+     */
+    public static Object onMediaParseEnd(Object media) {
+        Object result = filterFeedMedia(media);
+        java.util.ArrayDeque<Boolean> open = OPEN_MEDIA.get();
+        if (!open.isEmpty()) {
+            boolean[] flag = MEDIA_IS_AD.get();
+            flag[0] = open.pop() || flag[0];
+        }
+        return result;
     }
 
     /**
