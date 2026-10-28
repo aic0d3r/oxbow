@@ -51,7 +51,8 @@ ${CHANGES}
 
 ---
 
-Oxbow for Instagram ${VERSION} (patch bundle ${CURRENT}).
+Oxbow for Instagram ${VERSION} (patch bundle ${CURRENT}). Earlier patch bundles for this
+version, and what they changed: [CHANGELOG.md](https://github.com/${REPO}/blob/main/CHANGELOG.md).
 
 - **oxbow.apk** replaces Instagram (uninstall Instagram first).
 - **oxbow-clone.apk** installs next to Instagram.
@@ -67,10 +68,10 @@ EOF
 
 if gh release view "$TAG" -R "$REPO" >/dev/null 2>&1; then
     gh release upload "$TAG" "$DIR/oxbow.apk" "$DIR/oxbow-clone.apk" "$MPP" -R "$REPO" --clobber
-    gh release edit "$TAG" -R "$REPO" --title "Oxbow $VERSION" --notes "$NOTES"
+    gh release edit "$TAG" -R "$REPO" --title "Oxbow $VERSION · patch bundle $CURRENT" --notes "$NOTES"
 else
     gh release create "$TAG" "$DIR/oxbow.apk" "$DIR/oxbow-clone.apk" "$MPP" \
-        -R "$REPO" --title "Oxbow $VERSION" --notes "$NOTES" ${DRAFT:+--draft}
+        -R "$REPO" --title "Oxbow $VERSION · patch bundle $CURRENT" --notes "$NOTES" ${DRAFT:+--draft}
 fi
 
 if [ -n "$DRAFT" ]; then

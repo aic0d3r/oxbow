@@ -26,6 +26,10 @@ kept below, unchanged.
   Imagine units from the feed. Approach adapted from HushGram. Search-bar, inbox, profile and
   Blend entries are not covered.
 - **Copy caption** in the `⋯` menu of posts and Reels (Keep > Copy caption, on by default).
+- **Patch-only releases reach you now**: the update check used to compare only the Instagram
+  version, so a new Oxbow on the same Instagram build was never offered. It compares the patch
+  bundle version too (Keep > Check for updates), and the prompt names the bundle when only that
+  moved.
 
 ### Fixed
 - **Ghost mode: chats clear for you again.** With read receipts off, opening or replying in a chat

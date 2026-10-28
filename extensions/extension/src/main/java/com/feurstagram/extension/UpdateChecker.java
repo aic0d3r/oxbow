@@ -220,7 +220,15 @@ public final class UpdateChecker implements Runnable {
             }
 
             String installed = installedVersion();
-            if (isNewer(normalize(tag), installed)) {
+            // A patch-only release keeps the Instagram version, so the tag alone can't tell a new
+            // bundle from the one installed: the notes name the bundle, and BuildConfig carries
+            // the one baked into this APK.
+            String bundle = extractBundleVersion(body);
+            boolean instagramNewer = isNewer(normalize(tag), installed);
+            boolean bundleNewer = !instagramNewer && normalize(tag).equals(installed)
+                    && bundle != null && isNewer(bundle, BuildConfig.BUNDLE_VERSION);
+            if (instagramNewer || bundleNewer) {
+                final String bundleHeading = instagramNewer ? null : bundle;
                 final String apkUrl = extractApkUrl(body, isCloneBuild());
                 final String notes = extractReleaseBody(body);
                 final long size = extractApkSize(body, isCloneBuild());
@@ -228,7 +236,7 @@ public final class UpdateChecker implements Runnable {
                     Context target = manual ? context : foregroundActivity.get();
                     if (target instanceof Activity
                             && !((Activity) target).isFinishing() && !((Activity) target).isDestroyed()) {
-                        showPrompt(target, new Release(tag, notes, apkUrl, size), installed);
+                        showPrompt(target, new Release(tag, notes, apkUrl, size), installed, bundleHeading);
                     }
                 });
             } else if (manual) {
@@ -398,6 +406,23 @@ public final class UpdateChecker implements Runnable {
                 return -1;
             }
         }
+    }
+
+    /**
+     * The patch bundle named in the release notes, e.g. "1.2.0" out of
+     * "Oxbow for Instagram 453.0.0.55.79 (patch bundle 1.2.0)". Null when the notes don't name one.
+     */
+    static String extractBundleVersion(String body) {
+        if (body == null) return null;
+        String marker = "patch bundle ";
+        for (int at = body.indexOf(marker); at >= 0; at = body.indexOf(marker, at + 1)) {
+            int start = at + marker.length();
+            int end = start;
+            while (end < body.length() && (Character.isDigit(body.charAt(end)) || body.charAt(end) == '.')) end++;
+            String value = body.substring(start, end);
+            if (value.matches("\\d+(\\.\\d+)*")) return value;
+        }
+        return null;
     }
 
     /** "v434-0-0-44-74" -> "434.0.0.44.74" so it matches the installed versionName. */
@@ -576,12 +601,22 @@ public final class UpdateChecker implements Runnable {
     // --- "Update available" page ----------------------------------------------
 
     private static void showPrompt(Context context, Release release, String installed) {
+        showPrompt(context, release, installed, null);
+    }
+
+    /**
+     * @param bundle the release's patch bundle version when only that is new (same Instagram
+     *               version), which is how a patch-only release is announced; null otherwise.
+     */
+    private static void showPrompt(Context context, Release release, String installed, String bundle) {
         try {
             Dialog existing = availablePrompt.get();
             if (updateInFlight || (existing != null && existing.isShowing())) return;
             Settings.Page page = Settings.newPage(context);
             Settings.addPageTitle(page, "Update available",
-                    "Oxbow " + release.tag + "  ·  you have " + installed);
+                    bundle == null
+                            ? "Oxbow " + release.tag + "  ·  you have " + installed
+                            : "Oxbow patch bundle " + bundle + "  ·  you have " + BuildConfig.BUNDLE_VERSION);
 
             final Dialog dialog = Settings.newPageDialog(context, page.root);
             dialog.setOnDismissListener(d -> {
