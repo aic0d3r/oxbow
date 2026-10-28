@@ -4,7 +4,10 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.SystemClock;
 
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Runtime configuration backed by SharedPreferences ("feurstagram_prefs").
@@ -239,6 +242,38 @@ public final class Config {
     public static boolean isTypingHidden() { return getBlocked("ghost_typing", false); }
     /** Long-pressing New message in the inbox flips the three Ghost switches together. */
     public static boolean isGhostShortcut() { return getBlocked("ghost_shortcut", true); }
+
+    /**
+     * Message ids Instagram reported as seen while Ghost mode held the receipt back. The inbox is
+     * rebuilt from the server, which never learns about them, so without this a chat you read comes
+     * back bold after a sync or a restart. shortcut: no eviction order, the whole set is dropped
+     * past {@link #SEEN_ITEM_LIMIT}; version bump if a session ever needs more ids than that.
+     */
+    private static final String SEEN_ITEMS = "ghost_seen_items";
+    private static final int SEEN_ITEM_LIMIT = 500;
+    private static final Object SEEN_LOCK = new Object();
+
+    /** Remember a message id as read on this phone (called where Ghost mode queues a receipt). */
+    public static void rememberSeenItem(String messageId) {
+        if (messageId == null || messageId.isEmpty()) return;
+        synchronized (SEEN_LOCK) {
+            SharedPreferences prefs = prefs();
+            if (prefs == null) return;
+            Set<String> seen = new HashSet<>(prefs.getStringSet(SEEN_ITEMS, Collections.emptySet()));
+            if (!seen.add(messageId)) return;
+            if (seen.size() > SEEN_ITEM_LIMIT) seen.clear();
+            prefs.edit().putStringSet(SEEN_ITEMS, seen).apply();
+        }
+    }
+
+    /** Whether Ghost mode kept this message's receipt back and it was read on this phone. */
+    public static boolean isItemSeen(String messageId) {
+        if (messageId == null || !isDmSeenHidden()) return false;
+        synchronized (SEEN_LOCK) {
+            SharedPreferences prefs = prefs();
+            return prefs != null && prefs.getStringSet(SEEN_ITEMS, Collections.emptySet()).contains(messageId);
+        }
+    }
 
     /** Any Ghost switch on turns all off, otherwise all on. Returns the new state. */
     public static boolean toggleGhostMode() {

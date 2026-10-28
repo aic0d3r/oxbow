@@ -1501,7 +1501,7 @@ public final class Settings {
         if (key.equals("download_all_slides")) return "Posts with several photos or videos save all of them. Off: hold Download to save all once.";
         if (key.equals("clean_links")) return "Remove tracking (igsh, utm) from links you copy or share.";
         if (key.equals("ghost_story_seen")) return "Watch stories without appearing in the viewer list.";
-        if (key.equals("ghost_dm_seen")) return "Chats you open stay unread for the sender, and for you.";
+        if (key.equals("ghost_dm_seen")) return "Chats you open stay unread for the sender. They clear for you.";
         if (key.equals("ghost_typing")) return "Others don't see “typing…” while you write.";
         if (key.equals("ghost_shortcut")) return "Hold New message in the inbox to switch all three on or off.";
         if (key.equals("block_comments")) return "Hide comment buttons and never open comments.";

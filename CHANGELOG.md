@@ -27,6 +27,15 @@ kept below, unchanged.
   Blend entries are not covered.
 - **Copy caption** in the `⋯` menu of posts and Reels (Keep > Copy caption, on by default).
 
+### Fixed
+- **Ghost mode: chats clear for you again.** With read receipts off, opening or replying in a chat
+  used to leave it bold in your own inbox. Instagram still gets no receipt — the sender stays on
+  Delivered — but the row, its "N new messages" line and the Messages tab badge clear on your
+  phone, and stay cleared after a refresh or a restart. The queued receipt is now finished through
+  Instagram's own callback instead of being dropped, and the ids you read are kept so the inbox's
+  "has this message been seen" answer can say yes without anything leaving the phone. Approach
+  informed by HushGram's read-without-receipt patch; no code ported.
+
 ## Oxbow v453-0-0-55-79, patch bundle 1.1.1
 
 ### Fixed

@@ -47,3 +47,77 @@ fun MutableMethod.returnEarlyIf(toggle: String, returnSmali: String = "return-vo
         ExternalLabel("instagram", getInstruction(0)),
     )
 }
+
+/**
+ * At method entry: when Config.<toggle>() is on, finish the queued task by calling [complete]
+ * (an interface method taking an error object and a message, both null for done) and return,
+ * instead of running the method, which is what would send the request.
+ */
+fun MutableMethod.holdReceipt(toggle: String, complete: String, parameterIndex: Int = 1) {
+    if (freeLocals() < 4) throw PatchException("$name has no free registers for the $toggle hook")
+    val callback = parameterRegister(parameterIndex)
+    addInstructionsWithLabels(
+        0,
+        """
+            invoke-static { }, $CONFIG_CLASS->$toggle()Z
+            move-result v0
+            if-eqz v0, :instagram
+            const/4 v2, 0x0
+            const/4 v3, 0x0
+            move-object/from16 v1, v$callback
+            invoke-interface {v1, v2, v3}, $complete
+            return-void
+        """,
+        ExternalLabel("instagram", getInstruction(0)),
+    )
+}
+
+/**
+ * At method entry: if Config.<toggle>(this String parameter) is true, return true. Used where a
+ * boolean answer has to be overridden for one value of an argument, not for the whole call.
+ */
+fun MutableMethod.returnTrueIf(toggle: String, parameterIndex: Int) {
+    if (freeLocals() < 2) throw PatchException("$name has no free registers for the $toggle hook")
+    val argument = parameterRegister(parameterIndex)
+    addInstructionsWithLabels(
+        0,
+        """
+            move-object/from16 v1, v$argument
+            invoke-static {v1}, $CONFIG_CLASS->$toggle(Ljava/lang/String;)Z
+            move-result v0
+            if-eqz v0, :instagram
+            const/4 v0, 0x1
+            return v0
+        """,
+        ExternalLabel("instagram", getInstruction(0)),
+    )
+}
+
+/**
+ * At method entry: when Config.<toggle>() is on, hand each listed String parameter to
+ * Config.<remember>(String). Used to keep the ids of what Ghost mode reports as seen locally only.
+ */
+fun MutableMethod.rememberStringsIf(toggle: String, remember: String, parameterIndexes: List<Int>) {
+    if (parameterIndexes.isEmpty()) return
+    if (freeLocals() < 2) throw PatchException("$name has no free registers for the $toggle hook")
+    val calls = parameterIndexes.joinToString("\n") {
+        "move-object/from16 v1, v${parameterRegister(it)}\n" +
+            "invoke-static {v1}, $CONFIG_CLASS->$remember(Ljava/lang/String;)V"
+    }
+    addInstructionsWithLabels(
+        0,
+        """
+            invoke-static { }, $CONFIG_CLASS->$toggle()Z
+            move-result v0
+            if-eqz v0, :instagram
+            $calls
+        """,
+        ExternalLabel("instagram", getInstruction(0)),
+    )
+}
+
+/** Register holding parameter [index] (0-based, without `this`), which sits in the highest locals. */
+private fun MutableMethod.parameterRegister(index: Int): Int {
+    val words = parameterTypes.sumOf { if (it.toString() == "J" || it.toString() == "D") 2 else 1 } + 1
+    return (implementation?.registerCount ?: 0) - words + 1 + index
+}

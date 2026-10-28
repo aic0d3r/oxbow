@@ -17,7 +17,7 @@ that pull you back into scrolling.
 | HD profile picture: long-press avatar | same (`profileAvatarLongPress`) | yes (1080px) |
 | Clean share links (allowlist: `img_index`, `story_media_id`, `comment_id`, `hl`) | `privacy/CleanLinksPatch.kt`, `ShareLinks.java` | yes (copy link) |
 | Ghost: stories not marked seen | `privacy/GhostModePatch.kt` + `Block.java` | opens fine; "not in viewer list" needs a 2nd account |
-| Ghost: no DM read receipts | same | not exercised (needs a real chat) |
+| Ghost: no DM read receipts | same (`holdReceipt`, inbox seen check) | yes (two accounts: sender stays on Delivered, the chat clears and stays cleared after a restart) |
 | Ghost: no typing indicator | same | not exercised (needs a real chat) |
 | Comments off (feed + reels buttons, composer, sheet, endpoints) | `distraction/CommentsAndScrollPatch.kt`, `Scroll.java`, `Block.java` | yes |
 | No endless scrolling (reel viewer swipe, "more like this" feeds, Inspiration reels) | same | yes (swipe) |
@@ -75,7 +75,10 @@ User-visible names, the clone package (`com.instagram.android.oxbow`), the updat
 ## Not done / known limits
 
 - F-Droid can't ship Oxbow (it builds from source only); Obtainium works from GitHub releases.
-- DM read receipts off also stops your own "mark as read" (the chat stays bold for you).
+- DM read receipts off leaves the message unread for the sender, which is the point. On this
+  phone the chat still clears when you open it or reply, and stays cleared after a refresh or a
+  restart, but counts Instagram keeps on its own side (the account switcher, another device)
+  keep showing the chat unread.
 - Story-seen blocking: stories you watch while it is on will be reported if you switch it off
   later and they are still in your tray (Instagram re-sends locally seen ids with the tray).
 - Re-downloading the same item creates `name-1.jpg` (Android's DownloadManager), not a skip.
