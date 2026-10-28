@@ -4,7 +4,7 @@ All notable changes to Oxbow are documented in this file. Oxbow is a fork of
 [FeurStagram](https://github.com/jean-voila/FeurStagram); its history before the fork is
 kept below, unchanged.
 
-## Unreleased
+## Oxbow v453-0-0-55-79, patch bundle 1.0.2
 
 ### Added
 - **Instagram 453.0.0.55.79.** Clean share links, ad blocking and hidden comment

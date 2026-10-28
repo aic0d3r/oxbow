@@ -3,12 +3,6 @@
 Oxbow's direction is a calm Instagram that is set up from the first launch and holds you to
 your choices. Planned work is judged against that. This list may change.
 
-## Next
-
-- Device-test the Instagram 453 build (three regression fixes plus the new story
-  swipe-up toggle) and release it. 452.1.0.53.64 stays the fallback if 453 cannot be
-  made to work.
-
 ## Reliability
 
 - Keep up with new Instagram versions, and say on each release which one it supports.

@@ -7,7 +7,7 @@ cut off from the river's main current: Instagram off the stream, keeping what ma
 for new Instagram versions). On top of them, utilities that let you *keep* things, never ones
 that pull you back into scrolling.
 
-## Features (Instagram 452.0.0.48.64)
+## Features (Instagram 453.0.0.55.79)
 
 | Feature | Patch / extension | Tested on device |
 |---|---|---|
