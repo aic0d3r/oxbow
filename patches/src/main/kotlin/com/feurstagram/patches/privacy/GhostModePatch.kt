@@ -9,6 +9,8 @@ import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.feurstagram.patches.shared.Constants.COMPATIBILITY_INSTAGRAM
 import com.feurstagram.patches.shared.Constants.EXTENSION
+import com.feurstagram.patches.shared.branchesToEntry
+import com.feurstagram.patches.shared.loadsString
 import com.feurstagram.patches.shared.holdReceipt
 import com.feurstagram.patches.shared.rememberStringsIf
 import com.feurstagram.patches.shared.returnEarlyIf
@@ -85,11 +87,28 @@ internal object TypingIndicatorFingerprint : Fingerprint(
     strings = listOf("indicate_activity"),
 )
 
+// Screenshots. Instagram has two detectors, one watching the phone's media and one scanning the
+// screenshot folders. Each hands a new screenshot to every listening screen, and a chat with a
+// disappearing photo or video then tells the sender. Returning before either hand-off means no
+// screen hears of it; detection and FLAG_SECURE stay stock. Approach adapted from HushGram.
+
+// The media detector's session starter, the one method writing both of its log lines.
+private const val CONTENT_DETECTOR = "ScreenshotDetectorByContent"
+private const val DETECTOR_SESSION = "Started new screenshot session"
+
+// What the folder detector logs as it hands a screenshot to each listener. Some 454 builds also
+// keep it in a string pool, so every class loading it is searched, not the first match.
+private const val FOLDER_REPORT = "Reporting screenshot: %s -> %s"
+
+// (time, path, list): how the media detector hands on a screenshot it found.
+private val CONTENT_HANDOFF = listOf("J", TEXT, "Ljava/util/List;")
+
 @Suppress("unused")
 val ghostModePatch = bytecodePatch(
     name = "Ghost mode",
     description = "Optional: watch stories without being listed as a viewer, read DMs without " +
-        "sending read receipts, type without showing \"typing...\". Each is a runtime toggle.",
+        "sending read receipts, type without showing \"typing...\", screenshot disappearing photos " +
+        "and videos without the sender being told. Each is a runtime toggle.",
     default = true,
 ) {
     compatibleWith(COMPATIBILITY_INSTAGRAM)
@@ -141,5 +160,36 @@ val ghostModePatch = bytecodePatch(
         }?.returnTrueIf("isItemSeen", 1)
             ?: throw PatchException("Inbox unread answer: no single ${check.name}")
         TypingIndicatorFingerprint.method.returnEarlyIf("isTypingHidden")
+
+        val sessions = mutableListOf<Method>()
+        val reports = mutableListOf<Method>()
+        classDefForEach { classDef ->
+            for (method in classDef.methods) {
+                if (method.loadsString(CONTENT_DETECTOR) && method.loadsString(DETECTOR_SESSION)) sessions += method
+                if (method.returnType == "V" && AccessFlags.STATIC.isSet(method.accessFlags) &&
+                    method.parameterTypes.map(CharSequence::toString).takeLast(2) == listOf(TEXT, "Ljava/util/List;") &&
+                    method.loadsString(FOLDER_REPORT)
+                ) {
+                    reports += method
+                }
+            }
+        }
+        val session = sessions.singleOrNull()
+            ?: throw PatchException("Hide screenshots: expected one media screenshot detector, found ${sessions.size}")
+        val handoffs = classDefBy(session.definingClass).methods.filter {
+            it.returnType == "V" && !AccessFlags.STATIC.isSet(it.accessFlags) && it.implementation != null &&
+                it.parameterTypes.map(CharSequence::toString) == CONTENT_HANDOFF
+        }
+        val handoff = handoffs.singleOrNull()
+            ?: throw PatchException("Hide screenshots: expected one hand-off in the media detector, found ${handoffs.size}")
+        val report = reports.singleOrNull()
+            ?: throw PatchException("Hide screenshots: expected one folder screenshot report, found ${reports.size}")
+        for ((what, found) in listOf("media detector hand-off" to handoff, "folder screenshot report" to report)) {
+            val method = mutableClassDefBy(found.definingClass).methods.single {
+                it.name == found.name && it.returnType == found.returnType && it.parameterTypes == found.parameterTypes
+            }
+            if (method.branchesToEntry()) throw PatchException("Hide screenshots: something jumps back to the $what's first instruction")
+            method.returnEarlyIf("isScreenshotHidden") // throws when no register is free
+        }
     }
 }

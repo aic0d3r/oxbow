@@ -764,15 +764,16 @@ public final class Settings {
         addRow(context, ghost, "Don't mark stories as seen", "ghost_story_seen", Config.isStorySeenHidden());
         addRow(context, ghost, "Don't send read receipts", "ghost_dm_seen", Config.isDmSeenHidden());
         addRow(context, ghost, "Don't show typing", "ghost_typing", Config.isTypingHidden());
+        addRow(context, ghost, "Hide screenshots", "ghost_screenshot", Config.isScreenshotHidden());
         addRow(context, ghost, "Long-press New message", "ghost_shortcut", Config.isGhostShortcut());
         sealGroup(context, ghost);
     }
 
     private static String keepSummary() {
         int ghost = (Config.isStorySeenHidden() ? 1 : 0) + (Config.isDmSeenHidden() ? 1 : 0)
-                + (Config.isTypingHidden() ? 1 : 0);
+                + (Config.isTypingHidden() ? 1 : 0) + (Config.isScreenshotHidden() ? 1 : 0);
         return (Config.isDownloadEnabled() ? "Downloads on" : "Downloads off")
-                + (ghost == 0 ? ", ghost mode off" : ", ghost mode " + ghost + "/3");
+                + (ghost == 0 ? ", ghost mode off" : ", ghost mode " + ghost + "/4");
     }
 
     private static void buildDisplay(Context context, LinearLayout column) {
@@ -1508,7 +1509,8 @@ public final class Settings {
         if (key.equals("ghost_story_seen")) return "Watch stories without appearing in the viewer list.";
         if (key.equals("ghost_dm_seen")) return "Chats you open stay unread for the sender. They clear for you.";
         if (key.equals("ghost_typing")) return "Others don't see “typing…” while you write.";
-        if (key.equals("ghost_shortcut")) return "Hold New message in the inbox to switch all three on or off.";
+        if (key.equals("ghost_screenshot")) return "Don't tell people when you screenshot their disappearing photo or video.";
+        if (key.equals("ghost_shortcut")) return "Hold New message in the inbox to switch all four on or off.";
         if (key.equals("block_comments")) return "Hide comment buttons and never open comments.";
         if (key.equals("block_endless_scroll")) return "A reel you open stays one reel. No “more like this” feeds.";
         if (key.equals("block_story_swipe_up")) return "The swipe-up gesture on a story does nothing. No reply bar, no quick reactions.";

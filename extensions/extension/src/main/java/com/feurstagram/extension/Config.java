@@ -240,7 +240,18 @@ public final class Config {
     public static boolean isDmSeenHidden() { return getBlocked("ghost_dm_seen", false); }
     /** Ghost mode: typing in a chat does not show "typing…" to the other side. */
     public static boolean isTypingHidden() { return getBlocked("ghost_typing", false); }
-    /** Long-pressing New message in the inbox flips the three Ghost switches together. */
+    /**
+     * Ghost mode: screenshots of disappearing photos and videos never reach the chat, so the
+     * sender isn't told. Asked from Instagram's screenshot detectors; fails open (stock) on error.
+     */
+    public static boolean isScreenshotHidden() {
+        try {
+            return getBlocked("ghost_screenshot", false);
+        } catch (Throwable ignored) {
+            return false;
+        }
+    }
+    /** Long-pressing New message in the inbox flips the Ghost switches together. */
     public static boolean isGhostShortcut() { return getBlocked("ghost_shortcut", true); }
 
     /**
@@ -279,9 +290,9 @@ public final class Config {
     public static boolean toggleGhostMode() {
         SharedPreferences prefs = prefs();
         if (prefs == null) return false;
-        boolean on = !(isStorySeenHidden() || isDmSeenHidden() || isTypingHidden());
+        boolean on = !(isStorySeenHidden() || isDmSeenHidden() || isTypingHidden() || isScreenshotHidden());
         prefs.edit().putBoolean("ghost_story_seen", on).putBoolean("ghost_dm_seen", on)
-                .putBoolean("ghost_typing", on).apply();
+                .putBoolean("ghost_typing", on).putBoolean("ghost_screenshot", on).apply();
         return on;
     }
 
