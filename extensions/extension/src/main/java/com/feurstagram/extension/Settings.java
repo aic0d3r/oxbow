@@ -1294,11 +1294,16 @@ public final class Settings {
         // are measured, a rotation — all show up as ordinary layout passes.
         frame.getViewTreeObserver().addOnGlobalLayoutListener(() -> {
             int available = frame.getHeight() - frame.getPaddingTop() - frame.getPaddingBottom();
-            if (available <= 0 || card.getHeight() == 0) return;
+            if (available <= 0 || card.getWidth() == 0) return;
             ViewGroup.LayoutParams lp = growable.getLayoutParams();
-            int overflow = card.getHeight() - available;
+            // The card's laid-out height can't tell: it is capped at the space
+            // available, its last children (the buttons) squeezed to fit. Its
+            // natural height is what it would take with no limit.
+            card.measure(View.MeasureSpec.makeMeasureSpec(card.getWidth(), View.MeasureSpec.EXACTLY),
+                    View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+            int overflow = card.getMeasuredHeight() - available;
             if (overflow > 0) {
-                int height = Math.max(dp(frame.getContext(), 72), growable.getHeight() - overflow);
+                int height = Math.max(dp(frame.getContext(), 72), growable.getMeasuredHeight() - overflow);
                 if (lp.height != height) {
                     lp.height = height;
                     growable.setLayoutParams(lp);
