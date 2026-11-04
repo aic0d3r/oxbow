@@ -53,10 +53,10 @@ private const val USER_SESSION = "Lcom/instagram/common/session/UserSession;"
 private const val TEXT = "Ljava/lang/String;"
 
 /**
- * The chat summary's answer whether a chat shows unread: it asks itself a few no-argument
- * booleans (Mark as unread among them), then whether the account has seen the chat's newest
- * message, a three-String check on itself. That shape is unique to this answer, and unlike its
- * obfuscated name it survives version bumps.
+ * The chat summary's answer whether a chat shows unread: it asks itself at least one no-argument
+ * boolean (Mark as unread; 453 asked three, 454 inlined two into field reads), then whether the
+ * account has seen the chat's newest message, a three-String check on itself. That shape is unique
+ * to this answer, and unlike its obfuscated name it survives version bumps.
  */
 internal object ChatUnreadAnswerFingerprint : Fingerprint(
     returnType = "Z",
@@ -76,7 +76,7 @@ private fun Method.answersWhetherUnread(): Boolean {
         if (call.parameterTypes.isEmpty()) flags++
         else if (call.parameterTypes.map(CharSequence::toString) == listOf(TEXT, TEXT, TEXT)) seenChecks++
     }
-    return flags >= 3 && seenChecks == 1
+    return flags >= 1 && seenChecks == 1
 }
 
 // Typing indicator: the one sender of the MQTT "indicate_activity" command.

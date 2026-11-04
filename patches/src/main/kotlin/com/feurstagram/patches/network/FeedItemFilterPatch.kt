@@ -53,7 +53,8 @@ private const val MEDIA_TYPE = "Lcom/instagram/feed/media/Media;"
 // strings are unique to it; the per-field dispatcher it calls (hash-only, no
 // strings, field numbers reshuffled every release) is found from inside it,
 // and calling it is also what singles the entry point out from helpers that
-// share the two strings (Instagram 450 had eleven of them).
+// share the two strings (Instagram 450 had eleven of them). Instagram 454.0.0.54.77
+// is back on this path.
 internal object MediaParseFromJsonFingerprint : Fingerprint(
     returnType = MEDIA_TYPE,
     strings = listOf(
