@@ -6,6 +6,24 @@ kept below, unchanged.
 
 ## Unreleased
 
+### Added
+- **Instagram 454.0.0.54.77 is supported.** All 18 patches apply to 454.
+- **Hide screenshots** (Keep > Ghost mode > Hide screenshots, off by default): screenshot a
+  disappearing photo or video (view-once, replayable or vanish mode) without the sender being
+  told. Instagram has two screenshot detectors, and each passes a new screenshot to the chat; with
+  the switch on, neither does, so the chat never hears of it. Detection and Android's own screenshot
+  block are left as they are. Long-press **New message** now flips four Ghost switches together.
+  Approach adapted from HushGram. Build and hook are verified on 454; sending a view-once photo to
+  a second account to see the notice stay away has not been confirmed end to end yet.
+- **Back with Home hidden** leaves the app from the first icon left on the bar, instead of walking
+  back onto the hidden feed. From FeurStagram.
+
+### Fixed
+- **Ghost mode read receipts on 454.** Instagram reshaped the inbox's "is this chat unread" answer
+  in 454, so the patch that keeps chats cleared in your own inbox no longer matched; it does again.
+- **Launch cards fit short screens.** What's new, the follow prompt and the settings guide could
+  squeeze their buttons on short screens. From FeurStagram.
+
 ## Oxbow v453-0-0-55-79, patch bundle 1.2.0
 
 ### Added
