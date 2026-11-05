@@ -3,6 +3,7 @@ package com.feurstagram.extension;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.SystemClock;
+import android.view.Window;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -300,6 +301,30 @@ public final class Config {
     public static boolean isCleanLinks() { return getBlocked("clean_links", true); }
     /** Comments: no comment buttons, no comment sheets. Lockable like every block_*. */
     public static boolean isCommentsBlocked() { return getBlocked("block_comments", false); }
+
+    /** WindowManager.LayoutParams.FLAG_SECURE: the window shows black in screenshots and recordings. */
+    private static final int FLAG_SECURE = 0x2000;
+
+    /**
+     * Asked when Instagram is about to mark a window secure (Hide screenshots). True leaves the
+     * window capturable. A failed switch read keeps stock behaviour; this never throws.
+     */
+    public static boolean liftScreenshotBlock() { return isScreenshotHidden(); }
+
+    /** Stand-in for Window.setFlags: with Hide screenshots on, FLAG_SECURE never turns on. */
+    public static void setFlags(Window window, int flags, int mask) {
+        if ((flags & mask & FLAG_SECURE) != 0 && isScreenshotHidden()) {
+            flags &= ~FLAG_SECURE;
+            mask &= ~FLAG_SECURE;
+        }
+        window.setFlags(flags, mask);
+    }
+
+    /** Stand-in for Window.addFlags: with Hide screenshots on, FLAG_SECURE stays off. */
+    public static void addFlags(Window window, int flags) {
+        if ((flags & FLAG_SECURE) != 0 && isScreenshotHidden()) flags &= ~FLAG_SECURE;
+        window.addFlags(flags);
+    }
     /**
      * Endless scrolling outside the (blocked) feed and Reels tab: swiping to the next reel in
      * any reel viewer, and the "more like this" feeds under a search/explore result.
