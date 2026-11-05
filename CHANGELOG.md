@@ -4,9 +4,15 @@ All notable changes to Oxbow are documented in this file. Oxbow is a fork of
 [FeurStagram](https://github.com/jean-voila/FeurStagram); its history before the fork is
 kept below, unchanged.
 
-## Unreleased
+## Oxbow v454-0-0-54-77, patch bundle 1.3.1
 
-Nothing yet.
+### Changed
+- **Hide screenshots can now take the screenshot.** The switch only kept Instagram from telling
+  the chat, while the disappearing-media window itself still refused screenshots ("This app does
+  not allow screenshots") — so there was nothing for the detectors to hide. While the switch is
+  on, that window stops being marked screenshot-protected. On the test phone, view-once: the
+  screenshot goes through and the sender sees no notice; switch it off and the stock block
+  returns. Also from HushGram (its Allow screenshots half).
 
 ## Oxbow v454-0-0-54-77, patch bundle 1.3.0
 
