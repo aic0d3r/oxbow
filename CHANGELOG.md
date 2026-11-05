@@ -4,6 +4,10 @@ All notable changes to Oxbow are documented in this file. Oxbow is a fork of
 [FeurStagram](https://github.com/jean-voila/FeurStagram); its history before the fork is
 kept below, unchanged.
 
+## Unreleased
+
+Nothing yet.
+
 ## Oxbow v454-0-0-54-77, patch bundle 1.3.0
 
 ### Added
