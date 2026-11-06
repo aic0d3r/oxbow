@@ -806,9 +806,10 @@ public final class Settings {
             try {
                 ((android.content.ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE))
                         .setPrimaryClip(android.content.ClipData.newPlainText("Oxbow version", summary));
-                // Android 13+ confirms clipboard writes itself.
-                if (Build.VERSION.SDK_INT < 33) Toast.makeText(context, "Version info copied", Toast.LENGTH_SHORT).show();
-            } catch (Throwable ignored) {
+                // Always toast: OEM skins (MIUI) drop Android 13's own clipboard notice.
+                Toast.makeText(context, "Version info copied", Toast.LENGTH_SHORT).show();
+            } catch (Throwable t) {
+                Toast.makeText(context, "Couldn't copy the version info", Toast.LENGTH_SHORT).show();
             }
             return true;
         });
