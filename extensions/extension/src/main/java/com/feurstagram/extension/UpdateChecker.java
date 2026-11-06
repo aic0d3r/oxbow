@@ -276,6 +276,10 @@ public final class UpdateChecker implements Runnable {
 
     /** True when this is the side-by-side clone package (asset name ends in -clone.apk). */
     private boolean isCloneBuild() {
+        return isCloneBuild(context);
+    }
+
+    static boolean isCloneBuild(Context context) {
         String pkg = context.getPackageName();
         return pkg != null && (pkg.endsWith(".oxbow") || pkg.endsWith(".feurstagram"));
     }
@@ -450,7 +454,7 @@ public final class UpdateChecker implements Runnable {
      * looks up a release by this exact tag, so a made-up version would only ever
      * 404.
      */
-    private static String realInstalledVersion(Context context) {
+    static String realInstalledVersion(Context context) {
         try {
             PackageManager pm = context.getPackageManager();
             return pm.getPackageInfo(context.getPackageName(), 0).versionName;

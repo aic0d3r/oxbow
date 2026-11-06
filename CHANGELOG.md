@@ -6,6 +6,11 @@ kept below, unchanged.
 
 ## Unreleased
 
+### Added
+- **What's installed, in Settings → Updates.** The page now shows the Instagram version, the
+  patch bundle, whether this is an official release or a build you patched yourself, whether
+  it's the clone, and which app installed it. Long-press it to copy all of that for a bug report.
+
 ### Changed
 - **"Star on GitHub" in the What's new card**, replacing the Sponsor button there. Sponsoring
   is still in Settings, under Support, next to a new Star button.

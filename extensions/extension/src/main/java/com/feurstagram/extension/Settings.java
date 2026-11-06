@@ -789,6 +789,31 @@ public final class Settings {
     }
 
     private static void buildUpdates(Context context, LinearLayout column) {
+        String igVersion = UpdateChecker.realInstalledVersion(context);
+        String build = UpdateChecker.isOfficialBuild(context) ? "Official release" : "Patched yourself";
+        String placement = UpdateChecker.isCloneBuild(context) ? "Clone" : "Replaces Instagram";
+        String installer = installerLabel(context);
+        String versions = "Instagram " + (igVersion == null ? "unknown" : igVersion)
+                + " · patches " + BuildConfig.BUNDLE_VERSION;
+
+        LinearLayout installed = addGroup(context, column);
+        LinearLayout info = makeRow(context, installed, "Installed", versions + "\n" + build + " · " + placement
+                + "\n" + (installer == null ? "Installer unknown" : "Installed with " + installer));
+        // Long-press copies a one-line summary for bug reports.
+        info.setOnLongClickListener(v -> {
+            String summary = "Oxbow: " + versions + " · " + build + " · " + placement
+                    + " · installer " + (installer == null ? "unknown" : installer);
+            try {
+                ((android.content.ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE))
+                        .setPrimaryClip(android.content.ClipData.newPlainText("Oxbow version", summary));
+                // Android 13+ confirms clipboard writes itself.
+                if (Build.VERSION.SDK_INT < 33) Toast.makeText(context, "Version info copied", Toast.LENGTH_SHORT).show();
+            } catch (Throwable ignored) {
+            }
+            return true;
+        });
+        sealGroup(context, installed);
+
         LinearLayout updates = addGroup(context, column);
         addRow(context, updates, "Automatic update check", "auto_update", Config.isAutoUpdateEnabled());
         sealGroup(context, updates);
@@ -796,6 +821,27 @@ public final class Settings {
         Button checkUpdate = makeButton(context, "Check for updates", SURFACE_CONTAINER_HIGH, ON_SURFACE, true);
         checkUpdate.setOnClickListener(v -> UpdateChecker.checkNow(context));
         column.addView(checkUpdate, stackedButtonParams(context, 12));
+    }
+
+    /** The app that installed this package, by name where Android lets us see it; null if unknown. */
+    private static String installerLabel(Context context) {
+        try {
+            PackageManager pm = context.getPackageManager();
+            String pkg = context.getPackageName();
+            String installer = Build.VERSION.SDK_INT >= 30
+                    ? pm.getInstallSourceInfo(pkg).getInstallingPackageName()
+                    : pm.getInstallerPackageName(pkg);
+            if (installer == null) return null;
+            if (installer.equals(pkg)) return "Oxbow's updater";
+            if (installer.equals("com.android.shell")) return "adb";
+            try {
+                return pm.getApplicationLabel(pm.getApplicationInfo(installer, 0)).toString();
+            } catch (Throwable hidden) {
+                return installer; // package visibility can hide the label; the id still helps
+            }
+        } catch (Throwable t) {
+            return null;
+        }
     }
 
     private static void buildSupport(Context context, LinearLayout column) {
