@@ -6,7 +6,9 @@ kept below, unchanged.
 
 ## Unreleased
 
-Nothing yet.
+### Changed
+- **"Star on GitHub" in the What's new card**, replacing the Sponsor button there. Sponsoring
+  is still in Settings, under Support, next to a new Star button.
 
 ## Oxbow v454-0-0-54-77, patch bundle 1.3.2
 

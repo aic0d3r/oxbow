@@ -85,6 +85,7 @@ public final class Settings {
     public static final int PRIMARY = 0xFFFFFFFF;
 
     static final String SPONSORS_URL = "https://github.com/sponsors/aic0d3r";
+    static final String REPO_URL = "https://github.com/aic0d3r/oxbow";
     public static final int ON_PRIMARY = 0xFF101010;
     /**
      * Destructive actions. A monochrome scheme has no red to lean on, so they
@@ -798,13 +799,17 @@ public final class Settings {
     }
 
     private static void buildSupport(Context context, LinearLayout column) {
+        Button star = makeButton(context, "Star on GitHub", SURFACE_CONTAINER_HIGH, ON_SURFACE, true);
+        star.setOnClickListener(v -> openUrl(context, REPO_URL));
+        column.addView(star, stackedButtonParams(context, 16));
+
         Button sponsors = makeButton(context, "Sponsor on GitHub", SURFACE_CONTAINER_HIGH, ON_SURFACE, true);
         sponsors.setOnClickListener(v -> openUrl(context, SPONSORS_URL));
-        column.addView(sponsors, stackedButtonParams(context, 16));
+        column.addView(sponsors, stackedButtonParams(context, 10));
 
         Button source = makeButton(context, "Source code and issues", 0, ON_SURFACE, false);
         source.setBackground(outlined(context, OUTLINE_VARIANT));
-        source.setOnClickListener(v -> openUrl(context, "https://github.com/aic0d3r/oxbow"));
+        source.setOnClickListener(v -> openUrl(context, REPO_URL));
         column.addView(source, stackedButtonParams(context, 10));
 
         Button upstream = makeButton(context, "Built on FeurStagram by Jean Herail", 0, ON_SURFACE, false);
@@ -1327,7 +1332,8 @@ public final class Settings {
         try {
             Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            context.startActivity(inBrowser(context, intent));
+            // Only Sponsors pages break in the GitHub app; other links open in whatever app claims them.
+            context.startActivity(url.contains("/sponsors/") ? inBrowser(context, intent) : intent);
         } catch (Throwable t) {
             Toast.makeText(context, "No browser available", Toast.LENGTH_LONG).show();
         }
