@@ -162,6 +162,6 @@ body:
     id: screenshots
     attributes:
       label: Screenshots, screen recordings, or logs
-      description: Add screenshots, screen recordings, crash logs, or adb logcat output if useful. For Feurstagram logs, try `adb logcat -s "Feurstagram:D"`.
+      description: Add screenshots, screen recordings, crash logs, or adb logcat output if useful. For Oxbow logs, try `adb logcat -s FeurFeed:I FeurNet:I FeurTray:I FeurUpdate:I OxbowMetaAi:I`.
     validations:
       required: false
