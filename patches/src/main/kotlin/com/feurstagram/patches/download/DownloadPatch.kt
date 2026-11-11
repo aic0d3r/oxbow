@@ -151,51 +151,61 @@ val downloadPatch = bytecodePatch(
         // 1. Add the DOWNLOAD row to every post's option list.
         PostOptionsBuilderFingerprint.method.apply {
             val insns = instructions.toList()
-            // Since 455 the builder is a coroutine dispatcher with many returns, so the
-            // anchor is the adder call fed by the DOWNLOAD sget itself: the other rows
-            // pass other enums. Inject right before it, where the creator and the list
-            // are alive in the call's own argument registers.
-            fun argRegister(call: Instruction, ref: MethodReference, index: Int): Int {
-                val sizes = ref.parameterTypes.map { if (it.toString() == "J" || it.toString() == "D") 2 else 1 }
-                val at = sizes.take(index).sum()
-                return when (call) {
-                    is RegisterRangeInstruction -> call.startRegister + at
-                    is FiveRegisterInstruction -> when (at) {
-                        0 -> call.registerC
-                        1 -> call.registerD
-                        2 -> call.registerE
-                        3 -> call.registerF
-                        4 -> call.registerG
-                        else -> throw PatchException("Menu row adder has too many arguments")
-                    }
-                    else -> throw PatchException("Menu row adder uses an unsupported invoke")
+            // Since 455 the builder is a coroutine dispatcher whose per-row cases only run
+            // when Instagram itself adds that row (its Download row is own-posts-only), so
+            // the anchor is the menu list's single creation: right after its constructor
+            // the creator and the fresh list are both live and no rows exist yet.
+            val creatorType = insns.firstNotNullOfOrNull {
+                ((it as? ReferenceInstruction)?.reference as? MethodReference)
+                    ?.takeIf { r -> r.isRowAdder() }?.parameterTypes?.get(2)
+            } ?: throw PatchException("Post options builder has no row adder")
+            val newListAt = insns.indexOfFirst {
+                it.opcode == Opcode.NEW_INSTANCE &&
+                    ((it as? ReferenceInstruction)?.reference as? TypeReference)?.type == "Ljava/util/ArrayList;"
+            }
+            if (newListAt < 0) throw PatchException("Post options list creation not found")
+            val listReg = (insns[newListAt] as OneRegisterInstruction).registerA
+            val initAt = ((newListAt + 1)..<minOf(newListAt + 5, insns.size)).firstOrNull {
+                val r = (insns[it] as? ReferenceInstruction)?.reference as? MethodReference
+                insns[it].opcode == Opcode.INVOKE_DIRECT &&
+                    r?.definingClass == "Ljava/util/ArrayList;" && r.parameterTypes.isEmpty()
+            } ?: throw PatchException("Post options list constructor not found")
+            // The creator's register: a creator-typed field read loads it into its
+            // destination. Take the nearest read before the list is built whose register
+            // survives to the constructor (where the injection goes); else the first read
+            // after it, with the injection right behind that read.
+            val creatorReads = insns.withIndex().mapNotNull { (index, insn) ->
+                if (insn.opcode == Opcode.IGET_OBJECT &&
+                    ((insn as? ReferenceInstruction)?.reference as? FieldReference)?.type == creatorType)
+                    index to (insn as TwoRegisterInstruction).registerA else null
+            }
+            var pick: Triple<Int, Int, Int>? = null
+            for ((index, reg) in creatorReads.sortedByDescending { it.first }) {
+                if (index >= initAt || reg > 15) continue
+                if (insns.subList(index + 1, initAt + 1).none {
+                        (it as? OneRegisterInstruction)?.registerA == reg
+                    }) { pick = Triple(index, reg, initAt + 1); break }
+            }
+            if (pick == null) {
+                for ((index, reg) in creatorReads.sortedByDescending { it.first }) {
+                    if (index <= initAt || reg > 15) continue
+                    if (insns.subList(initAt + 1, index).none {
+                            (it as? OneRegisterInstruction)?.registerA == reg
+                        }) pick = Triple(index, reg, index + 1)
+                    break
                 }
             }
-            var injected = false
-            var labelRes = 0
-            insns.forEachIndexed { index, insn ->
-                val field = (insn as? ReferenceInstruction)?.reference as? FieldReference
-                if (insn.opcode != Opcode.SGET_OBJECT || field?.name != "DOWNLOAD" || field.type != MEDIA_OPTION) return@forEachIndexed
-                if (labelRes == 0) labelRes = insns.drop(index).firstNotNullOfOrNull {
-                    (it as? NarrowLiteralInstruction)?.narrowLiteral?.takeIf { v -> v ushr 24 == 0x7f }
-                } ?: throw PatchException("Download label id not found")
-                val optionReg = (insn as OneRegisterInstruction).registerA
-                // First adder call within reach whose Option argument is this sget's register.
-                val call = insns.drop(index).take(40).withIndex().firstNotNullOfOrNull { (offset, next) ->
-                    val ref = (next as? ReferenceInstruction)?.reference as? MethodReference
-                    if (ref?.isRowAdder() != true) return@firstNotNullOfOrNull null
-                    if (argRegister(next, ref, 1) != optionReg) return@firstNotNullOfOrNull null
-                    Triple(index + offset, next, ref)
-                } ?: return@forEachIndexed
-                val (siteAt, site, ref) = call
-                val creatorReg = argRegister(site, ref, 2)
-                val listReg = argRegister(site, ref, ref.parameterTypes.size - 2)
-                if (creatorReg > 15 || listReg > 15) throw PatchException("Post options builder registers changed")
-                addInstructions(siteAt,
-                    "invoke-static { v$creatorReg, v$listReg }, $DOWNLOAD_CLASS->addMenuItem(Ljava/lang/Object;Ljava/util/ArrayList;)V")
-                injected = true
-            }
-            if (!injected) throw PatchException("No Download row adder call found")
+            val (readAt, creatorReg, injectAt) = pick ?: throw PatchException("Post options creator register not found")
+            if (creatorReg > 15 || listReg > 15) throw PatchException("Post options builder registers changed")
+            addInstructions(injectAt,
+                "invoke-static { v$creatorReg, v$listReg }, $DOWNLOAD_CLASS->addMenuItem(Ljava/lang/Object;Ljava/util/ArrayList;)V")
+
+            // Instagram's localized "Download" label: the string id loaded right after the
+            // native row's sget-object DOWNLOAD.
+            val downloadAt = insns.indexOfFirst { it.getReference<FieldReference>()?.name == "DOWNLOAD" }
+            val labelRes = insns.drop(downloadAt).firstNotNullOfOrNull {
+                (it as? NarrowLiteralInstruction)?.narrowLiteral?.takeIf { v -> v ushr 24 == 0x7f }
+            } ?: throw PatchException("Download label id not found")
             LabelResFingerprint.method.addInstructions(0, "const v0, $labelRes\nreturn v0")
         }
 

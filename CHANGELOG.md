@@ -18,8 +18,8 @@ kept below, unchanged.
 ### Changed
 - **Based on Instagram 455.0.0.51.72.** All 19 patches apply to it. The post menu's option
   list moved into a coroutine dispatcher and its row adder takes an extra argument, so the
-  download row and Copy caption hook it at Instagram's own Download call; share links are
-  cleaned in the share intent builder that now returns a result.
+  download row and Copy caption now go in where Instagram creates the menu list; share links
+  are cleaned in the share intent builder that now returns a result.
 - **"Star on GitHub" in the What's new card**, replacing the Sponsor button there. Sponsoring
   is still in Settings, under Support, next to a new Star button.
 - **Following feed only joins the permanent lock.** Once the lock is on, the ranked feed
