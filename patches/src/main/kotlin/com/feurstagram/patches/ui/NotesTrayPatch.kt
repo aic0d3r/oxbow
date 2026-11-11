@@ -10,12 +10,12 @@ import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
-import com.feurstagram.patches.quoicouview.addBridge
-import com.feurstagram.patches.quoicouview.igAdapterApply
-import com.feurstagram.patches.quoicouview.igListModelType
-import com.feurstagram.patches.quoicouview.isListModel
-import com.feurstagram.patches.quoicouview.params
-import com.feurstagram.patches.quoicouview.methodRef
+import com.feurstagram.patches.shared.addBridge
+import com.feurstagram.patches.shared.igAdapterApply
+import com.feurstagram.patches.shared.igListModelType
+import com.feurstagram.patches.shared.isListModel
+import com.feurstagram.patches.shared.params
+import com.feurstagram.patches.shared.methodRef
 import com.feurstagram.patches.shared.Constants.COMPATIBILITY_INSTAGRAM
 import com.feurstagram.patches.shared.Constants.EXTENSION
 

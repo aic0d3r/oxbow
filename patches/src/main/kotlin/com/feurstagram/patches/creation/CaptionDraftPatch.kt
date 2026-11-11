@@ -12,9 +12,9 @@ import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
-import com.feurstagram.patches.quoicouview.addBridge
-import com.feurstagram.patches.quoicouview.methodRef
-import com.feurstagram.patches.quoicouview.params
+import com.feurstagram.patches.shared.addBridge
+import com.feurstagram.patches.shared.methodRef
+import com.feurstagram.patches.shared.params
 import com.feurstagram.patches.shared.Constants.COMPATIBILITY_INSTAGRAM
 
 private object CaptionInputFingerprint : Fingerprint(

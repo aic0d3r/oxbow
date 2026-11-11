@@ -13,8 +13,12 @@ import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
@@ -35,11 +39,13 @@ private fun ClassDef.originalName(): String? =
     fields.firstOrNull { it.name == "__redex_internal_original_name" }
         ?.initialValue?.let { (it as? StringEncodedValue)?.value }
 
-/** Instagram's static menu-row adder: (state, Option, creator, CharSequence, ArrayList, boolean). */
+/** Instagram's static menu-row adder: (state, Option, creator, CharSequence, ArrayList, boolean);
+ *  since 455 a nullable analytics object sits between the creator and the label. */
 private fun MethodReference.isRowAdder() =
-    parameterTypes.size == 6 && parameterTypes[1].toString() == MEDIA_OPTION &&
-        parameterTypes[3].toString() == "Ljava/lang/CharSequence;" &&
-        parameterTypes[4].toString() == "Ljava/util/ArrayList;" && parameterTypes[5].toString() == "Z"
+    parameterTypes.size in 6..7 && parameterTypes[1].toString() == MEDIA_OPTION &&
+        parameterTypes[parameterTypes.size - 3].toString() == "Ljava/lang/CharSequence;" &&
+        parameterTypes[parameterTypes.size - 2].toString() == "Ljava/util/ArrayList;" &&
+        parameterTypes[parameterTypes.size - 1].toString() == "Z"
 
 private fun Method.addsNativeDownloadRow(): Boolean {
     val insns = implementation?.instructions ?: return false
@@ -145,32 +151,51 @@ val downloadPatch = bytecodePatch(
         // 1. Add the DOWNLOAD row to every post's option list.
         PostOptionsBuilderFingerprint.method.apply {
             val insns = instructions.toList()
-            val adder = insns.firstNotNullOf { it.getReference<MethodReference>()?.takeIf { r -> r.isRowAdder() } }
-            val creatorType = adder.parameterTypes[2].toString()
-            val castIndex = insns.indexOfFirst {
-                it.opcode == Opcode.CHECK_CAST && it.getReference<TypeReference>()?.type == creatorType
+            // Since 455 the builder is a coroutine dispatcher with many returns, so the
+            // anchor is the adder call fed by the DOWNLOAD sget itself: the other rows
+            // pass other enums. Inject right before it, where the creator and the list
+            // are alive in the call's own argument registers.
+            fun argRegister(call: Instruction, ref: MethodReference, index: Int): Int {
+                val sizes = ref.parameterTypes.map { if (it.toString() == "J" || it.toString() == "D") 2 else 1 }
+                val at = sizes.take(index).sum()
+                return when (call) {
+                    is RegisterRangeInstruction -> call.startRegister + at
+                    is FiveRegisterInstruction -> when (at) {
+                        0 -> call.registerC
+                        1 -> call.registerD
+                        2 -> call.registerE
+                        3 -> call.registerF
+                        4 -> call.registerG
+                        else -> throw PatchException("Menu row adder has too many arguments")
+                    }
+                    else -> throw PatchException("Menu row adder uses an unsupported invoke")
+                }
             }
-            val returns = insns.filter { it.opcode == Opcode.RETURN_OBJECT }
-            if (castIndex < 0 || returns.size != 1) throw PatchException("Post options builder changed shape")
-            val creatorReg = (insns[castIndex] as OneRegisterInstruction).registerA
-            val listReg = (returns.single() as OneRegisterInstruction).registerA
-            // The list must already be in its register when the creator is cast (it is created first).
-            val listMade = insns.subList(0, castIndex).any {
-                it.opcode == Opcode.MOVE_RESULT_OBJECT && (it as OneRegisterInstruction).registerA == listReg
+            var injected = false
+            var labelRes = 0
+            insns.forEachIndexed { index, insn ->
+                val field = (insn as? ReferenceInstruction)?.reference as? FieldReference
+                if (insn.opcode != Opcode.SGET_OBJECT || field?.name != "DOWNLOAD" || field.type != MEDIA_OPTION) return@forEachIndexed
+                if (labelRes == 0) labelRes = insns.drop(index).firstNotNullOfOrNull {
+                    (it as? NarrowLiteralInstruction)?.narrowLiteral?.takeIf { v -> v ushr 24 == 0x7f }
+                } ?: throw PatchException("Download label id not found")
+                val optionReg = (insn as OneRegisterInstruction).registerA
+                // First adder call within reach whose Option argument is this sget's register.
+                val call = insns.drop(index).take(40).withIndex().firstNotNullOfOrNull { (offset, next) ->
+                    val ref = (next as? ReferenceInstruction)?.reference as? MethodReference
+                    if (ref?.isRowAdder() != true) return@firstNotNullOfOrNull null
+                    if (argRegister(next, ref, 1) != optionReg) return@firstNotNullOfOrNull null
+                    Triple(index + offset, next, ref)
+                } ?: return@forEachIndexed
+                val (siteAt, site, ref) = call
+                val creatorReg = argRegister(site, ref, 2)
+                val listReg = argRegister(site, ref, ref.parameterTypes.size - 2)
+                if (creatorReg > 15 || listReg > 15) throw PatchException("Post options builder registers changed")
+                addInstructions(siteAt,
+                    "invoke-static { v$creatorReg, v$listReg }, $DOWNLOAD_CLASS->addMenuItem(Ljava/lang/Object;Ljava/util/ArrayList;)V")
+                injected = true
             }
-            if (!listMade || creatorReg > 15 || listReg > 15) throw PatchException("Post options builder registers changed")
-
-            addInstructions(
-                castIndex + 1,
-                "invoke-static { v$creatorReg, v$listReg }, $DOWNLOAD_CLASS->addMenuItem(Ljava/lang/Object;Ljava/util/ArrayList;)V",
-            )
-
-            // Instagram's localized "Download" label: the string id loaded right after the
-            // native row's sget-object DOWNLOAD.
-            val downloadAt = insns.indexOfFirst { it.getReference<FieldReference>()?.name == "DOWNLOAD" }
-            val labelRes = insns.drop(downloadAt).firstNotNullOfOrNull {
-                (it as? NarrowLiteralInstruction)?.narrowLiteral?.takeIf { v -> v ushr 24 == 0x7f }
-            } ?: throw PatchException("Download label id not found")
+            if (!injected) throw PatchException("No Download row adder call found")
             LabelResFingerprint.method.addInstructions(0, "const v0, $labelRes\nreturn v0")
         }
 

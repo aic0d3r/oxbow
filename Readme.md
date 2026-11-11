@@ -11,7 +11,7 @@
 <p align="center">
   <a href="https://github.com/aic0d3r/oxbow/releases/latest"><img src="https://img.shields.io/github/v/release/aic0d3r/oxbow?color=2ea44f" alt="Release"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue" alt="License: GPL-3.0"></a>
-  <a href="https://github.com/aic0d3r/oxbow/releases"><img src="https://img.shields.io/badge/works%20with-Instagram%20454.0.0.54.77-8a2be2" alt="Instagram 454.0.0.54.77"></a>
+  <a href="https://github.com/aic0d3r/oxbow/releases"><img src="https://img.shields.io/badge/works%20with-Instagram%20455.0.0.51.72-8a2be2" alt="Instagram 455.0.0.51.72"></a>
 </p>
 
 Oxbow is a free, open-source patched Instagram for Android that is calm from the first
@@ -207,7 +207,7 @@ you want. Oxbow is the other way round, set up calm on first launch.
 | Ghost mode | No | Yes | Yes | **Yes** |
 | Tracker-free links | No | Yes | Yes | **Yes** |
 | Comments off | No | Yes | Yes | **Yes** |
-| Latest Instagram supported | 454.0 | 452.1, pre-release (447.0 stable) | 454.0 | **454.0** |
+| Latest Instagram supported | 455.0 | 452.1, pre-release (447.0 stable) | 454.0 | **454.0** |
 
 *Compared from each project's README, patch list and releases in November 2026. Spot an error? [Open an
 issue](https://github.com/aic0d3r/oxbow/issues/new/choose).*
