@@ -207,6 +207,7 @@ you want. Oxbow is the other way round, set up calm on first launch.
 | Ghost mode | No | Yes | Yes | **Yes** |
 | Tracker-free links | No | Yes | Yes | **Yes** |
 | Comments off | No | Yes | Yes | **Yes** |
+| Patch Instagram yourself in Morphe Manager | No, APKs only | Yes, `patches-3.11.1.mpp` | Yes, patch source | **Yes**, patch source and `.mpp` in every release |
 | Latest Instagram supported | 455.0 | 452.1, pre-release (447.0 stable) | 454.0 | **455.0** |
 
 *Compared from each project's README, patch list and releases in November 2026. Spot an error? [Open an
@@ -238,9 +239,15 @@ updates: [OXBOW.md](OXBOW.md).
 
 ## Credits and license
 
-Oxbow is a fork of [FeurStagram](https://github.com/jean-voila/FeurStagram) by Jean
-Herail. Its blocking, settings page and update system come from there, and Oxbow follows
-it for new Instagram versions. Some patch techniques (network blocking, clone, the hooks
-behind downloads and ghost mode) are adapted from [piko](https://github.com/crimera/piko).
-Built with [Morphe](https://morphe.software). GPL-3.0: see [LICENSE](LICENSE) and
-[NOTICE](NOTICE).
+Oxbow started as a fork of [FeurStagram](https://github.com/jean-voila/FeurStagram) by Jean
+Herail — its blocking, settings page and update system came from there, and upstream merges
+still bring the shared patches. But Oxbow does not follow upstream blindly: Instagram
+versions are ported independently, upstream features can be skipped (Quoicouview mode was
+not taken), and a growing share of the patch set is Oxbow's own — the downloads, Copy
+caption, HD avatars and hide screenshots.
+
+Some patch techniques are adapted from other GPLv3 works: network blocking, the clone build
+and the hook points behind downloads and ghost mode from [piko](https://github.com/crimera/piko);
+the Hide Meta AI patch and the hide-screenshots approach from
+[HushGram](https://github.com/SysAdminDoc/HushGram). Built with [Morphe](https://morphe.software).
+GPL-3.0: see [LICENSE](LICENSE) and [NOTICE](NOTICE).
