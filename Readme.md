@@ -207,7 +207,7 @@ you want. Oxbow is the other way round, set up calm on first launch.
 | Ghost mode | No | Yes | Yes | **Yes** |
 | Tracker-free links | No | Yes | Yes | **Yes** |
 | Comments off | No | Yes | Yes | **Yes** |
-| Latest Instagram supported | 455.0 | 452.1, pre-release (447.0 stable) | 454.0 | **454.0** |
+| Latest Instagram supported | 455.0 | 452.1, pre-release (447.0 stable) | 454.0 | **455.0** |
 
 *Compared from each project's README, patch list and releases in November 2026. Spot an error? [Open an
 issue](https://github.com/aic0d3r/oxbow/issues/new/choose).*

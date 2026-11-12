@@ -4,7 +4,7 @@ All notable changes to Oxbow are documented in this file. Oxbow is a fork of
 [FeurStagram](https://github.com/jean-voila/FeurStagram); its history before the fork is
 kept below, unchanged.
 
-## Unreleased
+## Oxbow v455-0-0-51-72, patch bundle 1.3.3
 
 ### Added
 - **What's installed, in Settings → Updates.** The page now shows the Instagram version, the
@@ -25,7 +25,7 @@ kept below, unchanged.
 - **Following feed only joins the permanent lock.** Once the lock is on, the ranked feed
   cannot come back without reinstalling.
 - **Tablets and large screens.** The tab bar is found on the side rail too, so hiding Home
-  and the settings long-press work there, and the settings open again on a long press.
+  works there and the settings open again on a long press.
 
 ## Oxbow v454-0-0-54-77, patch bundle 1.3.2
 
