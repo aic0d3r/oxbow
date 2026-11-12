@@ -240,14 +240,11 @@ updates: [OXBOW.md](OXBOW.md).
 ## Credits and license
 
 Oxbow started as a fork of [FeurStagram](https://github.com/jean-voila/FeurStagram) by Jean
-Herail — its blocking, settings page and update system came from there, and upstream merges
-still bring the shared patches. But Oxbow does not follow upstream blindly: Instagram
-versions are ported independently, upstream features can be skipped (Quoicouview mode was
-not taken), and a growing share of the patch set is Oxbow's own — the downloads, Copy
-caption, HD avatars and hide screenshots.
+Herail; upstream merges still bring the shared patches, but Instagram versions are ported
+independently and upstream features can be skipped. Much of the patch set is Oxbow's own:
+downloads, Copy caption, HD avatars, hide screenshots.
 
-Some patch techniques are adapted from other GPLv3 works: network blocking, the clone build
-and the hook points behind downloads and ghost mode from [piko](https://github.com/crimera/piko);
-the Hide Meta AI patch and the hide-screenshots approach from
-[HushGram](https://github.com/SysAdminDoc/HushGram). Built with [Morphe](https://morphe.software).
-GPL-3.0: see [LICENSE](LICENSE) and [NOTICE](NOTICE).
+Patch techniques adapted from other GPLv3 works: network blocking, clone and the download
+and ghost-mode hooks from [piko](https://github.com/crimera/piko); Hide Meta AI and the
+hide-screenshots approach from [HushGram](https://github.com/SysAdminDoc/HushGram). Built
+with [Morphe](https://morphe.software). GPL-3.0: see [LICENSE](LICENSE) and [NOTICE](NOTICE).
