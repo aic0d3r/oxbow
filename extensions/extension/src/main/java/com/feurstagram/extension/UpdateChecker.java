@@ -52,6 +52,7 @@ import java.util.Locale;
 import java.util.Scanner;
 import java.util.Set;
 import java.util.Collections;
+import java.util.UUID;
 import java.util.WeakHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -80,7 +81,7 @@ public final class UpdateChecker implements Runnable {
     private static final String RELEASE_BY_TAG = "https://api.github.com/repos/" + REPO + "/releases/tags/";
     private static final String USER_AGENT = "Oxbow-UpdateCheck";
 
-    /** Action prefix for the per-session PackageInstaller status callback. */
+    /** Action prefix for the PackageInstaller status callback, finished with a random UUID. */
     private static final String INSTALL_ACTION = "com.feurstagram.extension.INSTALL_STATUS";
 
     /** Where the download lands (app-specific external dir, no permission needed). */
@@ -140,6 +141,7 @@ public final class UpdateChecker implements Runnable {
         launchWatcherInstalled = true;
         foregroundActivity = new WeakReference<>(activity);
         activity.getApplication().registerActivityLifecycleCallbacks(new LaunchWatcher(activity));
+        Updater.clearNotification(activity.getApplication()); // one left by a dead process has no Cancel left
         checkAutomatically(activity);
     }
 
@@ -768,7 +770,8 @@ public final class UpdateChecker implements Runnable {
         /** Ongoing-download notification. One at a time, so one id is enough. */
         private static final int NOTIFICATION_ID = 0x4645_5552;
         private static final String CHANNEL_ID = "feurstagram_update";
-        private static final String CANCEL_ACTION = "com.feurstagram.extension.UPDATE_CANCEL";
+        /** Random per process: exported below Android 13, so the action must not be guessable. */
+        private static final String CANCEL_ACTION = "com.feurstagram.extension.UPDATE_CANCEL." + UUID.randomUUID();
 
         private final Context context;
         private final Context app;
@@ -803,14 +806,19 @@ public final class UpdateChecker implements Runnable {
             new Thread(updater::download, "feurstagram-update").start();
         }
 
-        /** Tear down everything on-screen and in the shade. */
-        private void finish() {
-            updateInFlight = false;
+        /** Also run at launch: a download that died with its process leaves this behind, Cancel included. */
+        private static void clearNotification(Context app) {
             try {
                 NotificationManager manager = app.getSystemService(NotificationManager.class);
                 if (manager != null) manager.cancel(NOTIFICATION_ID);
             } catch (Throwable ignored) {
             }
+        }
+
+        /** Tear down everything on-screen and in the shade. */
+        private void finish() {
+            updateInFlight = false;
+            clearNotification(app);
             if (cancelReceiver != null) {
                 try {
                     app.unregisterReceiver(cancelReceiver);
@@ -1087,6 +1095,7 @@ public final class UpdateChecker implements Runnable {
             try {
                 PackageInstaller.SessionParams params =
                         new PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL);
+                params.setAppPackageName(app.getPackageName()); // a swapped APK for another package must not be offered
                 int sessionId = installer.createSession(params);
                 session = installer.openSession(sessionId);
 
@@ -1097,6 +1106,7 @@ public final class UpdateChecker implements Runnable {
                     byte[] buffer = new byte[131072];
                     int n;
                     while ((n = in.read(buffer)) > 0) {
+                        if (cancelled) break;
                         out.write(buffer, 0, n);
                         written += n;
                         setProgress(written, length);
@@ -1104,9 +1114,21 @@ public final class UpdateChecker implements Runnable {
                     session.fsync(out);
                 }
 
+                if (cancelled) {
+                    try {
+                        session.abandon();
+                    } catch (Throwable ignored) {
+                    }
+                    apk.delete();
+                    finish();
+                    ui.post(() -> Toast.makeText(app, "Update cancelled", Toast.LENGTH_SHORT).show());
+                    return;
+                }
+
                 setStatus("Waiting for Android's install prompt…");
 
-                String action = INSTALL_ACTION + "." + sessionId;
+                // Not the session id: the filter is exported below Android 13 and those count up from one.
+                String action = INSTALL_ACTION + "." + UUID.randomUUID();
                 registerInstallReceiver(app, action, apk);
 
                 Intent intent = new Intent(action).setPackage(app.getPackageName());
