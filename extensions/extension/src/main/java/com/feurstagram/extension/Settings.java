@@ -1564,7 +1564,7 @@ public final class Settings {
         if (key.equals("ghost_story_seen")) return "Watch stories without appearing in the viewer list.";
         if (key.equals("ghost_dm_seen")) return "Chats you open stay unread for the sender. They clear for you.";
         if (key.equals("ghost_typing")) return "Others don't see “typing…” while you write.";
-        if (key.equals("ghost_screenshot")) return "Don't tell people when you screenshot their disappearing photo or video.";
+        if (key.equals("ghost_screenshot")) return "Don't tell people when you screenshot their disappearing photo or video. Screens Instagram blocks screenshots on allow them too.";
         if (key.equals("ghost_shortcut")) return "Hold New message in the inbox to switch all four on or off.";
         if (key.equals("block_comments")) return "Hide comment buttons and never open comments.";
         if (key.equals("block_endless_scroll")) return "A reel you open stays one reel. No “more like this” feeds.";
