@@ -174,10 +174,14 @@ val ghostModePatch = bytecodePatch(
         // Instagram rebuilds the inbox from the server, which never hears about these receipts, so
         // a ghosted chat comes back unread after a sync. Keep what you read locally here...
         val queued = DmThreadSeenQueueFingerprint.method
+        // (UserSession, task, client_context, message_id, thread_id): only the message id is what the
+        // unread check asks about, and the other two filled the set three times as fast. Any other
+        // shape keeps every String, as before.
+        val texts = queued.parameterTypes.indices.filter { queued.parameterTypes[it].toString() == TEXT }
         queued.rememberStringsIf(
             "isDmSeenHidden",
             "rememberSeenItem",
-            queued.parameterTypes.indices.filter { queued.parameterTypes[it].toString() == TEXT },
+            if (texts == listOf(2, 3, 4)) listOf(3) else texts,
         )
         // ...and let the chat summary's own "has this account seen that message" check answer for
         // it, so the chat still reads as read with the receipt never having left.
