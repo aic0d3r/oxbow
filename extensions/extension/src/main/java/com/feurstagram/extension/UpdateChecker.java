@@ -93,6 +93,20 @@ public final class UpdateChecker implements Runnable {
     private static WeakReference<Dialog> availablePrompt = new WeakReference<>(null);
     private static boolean whatsNewChecked;
 
+    /** Android's confirmation, kept while nothing of ours showed and no notification could carry it. */
+    private static Intent pendingConfirm;
+
+    /** Raises a kept confirmation as soon as one of our activities is visible again. */
+    private static void firePendingConfirm(Activity activity) {
+        Intent confirm = pendingConfirm;
+        if (confirm == null) return;
+        pendingConfirm = null;
+        try {
+            activity.startActivity(confirm);
+        } catch (Throwable ignored) {
+        }
+    }
+
     /**
      * One update at a time, process-wide. Without this a second run can create a
      * second installer session, and Android then queues a second confirmation
@@ -141,7 +155,9 @@ public final class UpdateChecker implements Runnable {
         launchWatcherInstalled = true;
         foregroundActivity = new WeakReference<>(activity);
         activity.getApplication().registerActivityLifecycleCallbacks(new LaunchWatcher(activity));
-        Updater.clearNotification(activity.getApplication()); // one left by a dead process has no Cancel left
+        // A download that died with its process leaves the progress one behind, Cancel included;
+        // a ready one still installs from its tap, so it stays.
+        Updater.clearNotification(activity.getApplication(), Updater.NOTIFICATION_ID);
         checkAutomatically(activity);
     }
 
@@ -173,6 +189,7 @@ public final class UpdateChecker implements Runnable {
 
         @Override public void onActivityResumed(Activity activity) {
             foregroundActivity = new WeakReference<>(activity);
+            firePendingConfirm(activity);
             if (checkOnResume) {
                 checkOnResume = false;
                 checkAutomatically(activity);
@@ -770,6 +787,8 @@ public final class UpdateChecker implements Runnable {
         /** Ongoing-download notification. One at a time, so one id is enough. */
         private static final int NOTIFICATION_ID = 0x4645_5552;
         private static final String CHANNEL_ID = "feurstagram_update";
+        /** "Tap to install": raised when Android asks for the user while we are in the background. */
+        private static final int READY_NOTIFICATION_ID = NOTIFICATION_ID + 1;
         /** Random per process: exported below Android 13, so the action must not be guessable. */
         private static final String CANCEL_ACTION = "com.feurstagram.extension.UPDATE_CANCEL." + UUID.randomUUID();
 
@@ -806,19 +825,58 @@ public final class UpdateChecker implements Runnable {
             new Thread(updater::download, "feurstagram-update").start();
         }
 
-        /** Also run at launch: a download that died with its process leaves this behind, Cancel included. */
-        private static void clearNotification(Context app) {
+        private static void clearNotification(Context app, int id) {
             try {
                 NotificationManager manager = app.getSystemService(NotificationManager.class);
-                if (manager != null) manager.cancel(NOTIFICATION_ID);
+                if (manager != null) manager.cancel(id);
             } catch (Throwable ignored) {
+            }
+        }
+
+        private static void ensureChannel(NotificationManager manager) {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return;
+            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, "Oxbow updates",
+                    NotificationManager.IMPORTANCE_LOW);
+            channel.setShowBadge(false);
+            manager.createNotificationChannel(channel);
+        }
+
+        /**
+         * Android asks the user to confirm while we are in the background, where it would drop our
+         * own start without a word (10+). A notification tap may raise it, so that is the prompt.
+         *
+         * @return false when no notification can be shown, so the first resume has to raise it
+         */
+        private static boolean notifyReady(Context app, Intent confirm) {
+            try {
+                NotificationManager manager = app.getSystemService(NotificationManager.class);
+                if (manager == null) return false;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && !manager.areNotificationsEnabled()) {
+                    return false;
+                }
+                ensureChannel(manager);
+                int flags = PendingIntent.FLAG_UPDATE_CURRENT;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) flags |= PendingIntent.FLAG_IMMUTABLE;
+                PendingIntent install = PendingIntent.getActivity(app, 1, confirm, flags);
+                Notification.Builder builder = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+                        ? new Notification.Builder(app, CHANNEL_ID) : new Notification.Builder(app);
+                builder.setContentTitle("Oxbow update ready")
+                        .setContentText("Tap to install")
+                        .setSmallIcon(android.R.drawable.stat_sys_download_done)
+                        .setAutoCancel(true)
+                        .setContentIntent(install);
+                manager.notify(READY_NOTIFICATION_ID, builder.build());
+                return true;
+            } catch (Throwable ignored) {
+                return false;
             }
         }
 
         /** Tear down everything on-screen and in the shade. */
         private void finish() {
             updateInFlight = false;
-            clearNotification(app);
+            clearNotification(app, NOTIFICATION_ID);
+            clearNotification(app, READY_NOTIFICATION_ID);
             if (cancelReceiver != null) {
                 try {
                     app.unregisterReceiver(cancelReceiver);
@@ -953,12 +1011,7 @@ public final class UpdateChecker implements Runnable {
             try {
                 NotificationManager manager = app.getSystemService(NotificationManager.class);
                 if (manager == null) return;
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    NotificationChannel channel = new NotificationChannel(CHANNEL_ID,
-                            "Oxbow updates", NotificationManager.IMPORTANCE_LOW);
-                    channel.setShowBadge(false);
-                    manager.createNotificationChannel(channel);
-                }
+                ensureChannel(manager);
                 Notification.Builder builder = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
                         ? new Notification.Builder(app, CHANNEL_ID)
                         : new Notification.Builder(app);
@@ -988,6 +1041,13 @@ public final class UpdateChecker implements Runnable {
                 if (status != null) status.setText(text);
             });
             notifyProgress(text, 0, 0, true);
+        }
+
+        /** The page alone; the shade now carries the installer's prompt, not the download. */
+        private void pageStatus(String text) {
+            ui.post(() -> {
+                if (status != null) status.setText(text);
+            });
         }
 
         private void setProgress(long done, long total) {
@@ -1129,7 +1189,7 @@ public final class UpdateChecker implements Runnable {
 
                 // Not the session id: the filter is exported below Android 13 and those count up from one.
                 String action = INSTALL_ACTION + "." + UUID.randomUUID();
-                registerInstallReceiver(app, action, apk);
+                registerInstallReceiver(app, action, apk, this);
 
                 Intent intent = new Intent(action).setPackage(app.getPackageName());
                 int flags = android.app.PendingIntent.FLAG_UPDATE_CURRENT;
@@ -1188,8 +1248,11 @@ public final class UpdateChecker implements Runnable {
      * used to start another confirmation activity — the second one surfacing after
      * the first install had already succeeded, reporting a failure for an APK that
      * was no longer there.
+     *
+     * In the background Android drops the start outright (10+), so there the confirmation
+     * goes out as a notification instead, or is held until one of our activities resumes.
      */
-    private static void registerInstallReceiver(Context app, String action, File apk) {
+    private static void registerInstallReceiver(Context app, String action, File apk, Updater updater) {
         BroadcastReceiver receiver = new BroadcastReceiver() {
             private boolean promptShown;
 
@@ -1200,15 +1263,26 @@ public final class UpdateChecker implements Runnable {
                     if (promptShown) return; // never raise a second confirmation
                     Intent confirm = intent.getParcelableExtra(Intent.EXTRA_INTENT);
                     if (confirm == null) return;
+                    promptShown = true;
                     confirm.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                    try {
-                        c.startActivity(confirm);
-                        promptShown = true;
-                    } catch (Throwable ignored) {
+                    if (foregroundActivity.get() != null) {
+                        try {
+                            c.startActivity(confirm);
+                        } catch (Throwable ignored) {
+                        }
+                        return;
+                    }
+                    // Nothing of ours is showing, so Android would drop that start without a word.
+                    if (Updater.notifyReady(c, confirm)) {
+                        updater.pageStatus("Tap the notification to install.");
+                    } else {
+                        pendingConfirm = confirm; // no notification can carry it: the first resume raises it
                     }
                     return;
                 }
                 // Terminal status: clean up.
+                pendingConfirm = null;
+                Updater.clearNotification(c, Updater.READY_NOTIFICATION_ID);
                 try {
                     c.unregisterReceiver(this);
                 } catch (Throwable ignored) {
