@@ -28,6 +28,9 @@ kept below, unchanged.
   update was being prepared, Android dropped its install prompt without a word. The prompt now
   arrives as a notification you tap to install, or opens as soon as you return to Instagram when
   notifications are off.
+- **The update page shows the download's full size from the start.** GitHub writes its sizes
+  with a space after the colon, which the updater's parser never got past, so the total only
+  appeared once the download had begun.
 - **No more stuck "Updating Oxbow" notification** after Instagram was closed mid-download; it is
   cleared at the next launch.
 - **Cancel is honoured while the update is being prepared,** instead of the install prompt

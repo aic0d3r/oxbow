@@ -421,10 +421,12 @@ public final class UpdateChecker implements Runnable {
             int size = assetStart < 0 ? -1 : json.indexOf("\"size\"", assetStart);
             if (size < 0 || size > at) return -1;
             int colon = json.indexOf(':', size);
-            int end = colon;
+            int start = colon + 1;
+            while (start < json.length() && Character.isWhitespace(json.charAt(start))) start++; // GitHub writes "size": 123
+            int end = start;
             while (end + 1 < json.length() && Character.isDigit(json.charAt(end + 1))) end++;
             try {
-                return Long.parseLong(json.substring(colon + 1, end + 1).trim());
+                return Long.parseLong(json.substring(start, end + 1));
             } catch (Throwable t) {
                 return -1;
             }
