@@ -6,6 +6,7 @@ import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.extensions.InstructionExtensions.replaceInstruction
 import app.morphe.util.getReference
 import com.android.tools.smali.dexlib2.AccessFlags
+import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
@@ -248,6 +249,9 @@ val ghostModePatch = bytecodePatch(
             for (method in classDef.methods) {
                 val calls = method.implementation?.instructions?.toList()?.withIndex()
                     ?.mapNotNull { (index, insn) ->
+                        // A Window subclass's own super.setFlags call must stay: routed to the stand-in,
+                        // which calls back into that subclass, it would never return.
+                        if (insn.opcode == Opcode.INVOKE_SUPER) return@mapNotNull null
                         when ((insn as? ReferenceInstruction)?.reference.toString()) {
                             SET_WINDOW_FLAGS, ADD_WINDOW_FLAGS -> index to insn
                             else -> null
