@@ -9,6 +9,7 @@ import android.widget.Toast;
 import java.io.File;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Clears Instagram's media caches on a background thread, then kills every
@@ -16,6 +17,9 @@ import java.util.Locale;
  * newly chosen blocks applied. Auth/session state is deliberately preserved.
  */
 public final class CacheCleaner implements Runnable {
+
+    /** One wipe per process: a double tap on Done must not run two wipes and two relays. */
+    private static final AtomicBoolean RUNNING = new AtomicBoolean();
 
     private final Context context;
 
@@ -25,7 +29,7 @@ public final class CacheCleaner implements Runnable {
 
     /** Show a toast, then run the wipe + restart on a worker thread. */
     public static void clearAndRestart(Context context) {
-        if (context == null) return;
+        if (context == null || !RUNNING.compareAndSet(false, true)) return;
         try {
             Toast.makeText(context, "Oxbow: clearing cache...", Toast.LENGTH_SHORT).show();
         } catch (Throwable ignored) {
@@ -35,6 +39,10 @@ public final class CacheCleaner implements Runnable {
 
     @Override
     public void run() {
+        // Kill Instagram's other processes first: they hold prefetch state and would refill caches
+        // or reopen databases mid-delete. This one stays for now, to hand the restart to the relay.
+        stopAppProcesses(context, true);
+
         try {
             wipeKnownVideoCaches(context);
             wipeKnownReelsArtifacts(context);
@@ -58,10 +66,6 @@ public final class CacheCleaner implements Runnable {
             wipeKnownReelsArtifacts(context);
         } catch (Throwable ignored) {
         }
-
-        // Kill Instagram's other processes first — they hold prefetch state too —
-        // but keep this one alive long enough to hand the restart to the relay.
-        stopAppProcesses(context, true);
 
         if (startRestartRelay(context)) {
             // The relay kills this process from the outside and relaunches the app.
