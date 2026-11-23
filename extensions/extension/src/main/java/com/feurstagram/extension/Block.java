@@ -178,6 +178,7 @@ public final class Block {
      * unit type cannot tell them apart; these fields can. {@code injected} holds
      * the "Sponsored" label and is on every ad, including the "ad break" ones;
      * {@code dr_ad_type} (direct-response ads) backs it up should it be renamed.
+     * 456's media parser still switches on {@code injected}, and no longer on {@code dr_ad_type}.
      * Organic posts carry other ad-sounding fields ({@code should_request_ads},
      * {@code is_paid_partnership}), which is why the list is this narrow.
      */
@@ -206,8 +207,8 @@ public final class Block {
     }
 
     /**
-     * Ad flags of the media parses still open on this thread (Instagram 453's inline parser;
-     * 454 is back on the per-field dispatcher and doesn't use these). The parser
+     * Ad flags of the media parses still open on this thread (Instagram 453's and 456's inline
+     * parser; 454 and 455 are back on the per-field dispatcher and don't use these). The parser
      * calls itself for carousel children, so a child must not clear its parent's flag.
      */
     private static final ThreadLocal<java.util.ArrayDeque<Boolean>> OPEN_MEDIA =
@@ -218,7 +219,7 @@ public final class Block {
             };
 
     /**
-     * Media parse entry (Instagram 453): saves the enclosing media's flag and starts a
+     * Media parse entry (Instagram 453, 456): saves the enclosing media's flag and starts a
      * clean one. A parse that throws never reaches {@link #onMediaParseEnd}, so the stack
      * is capped rather than trusted to balance.
      */
@@ -231,7 +232,7 @@ public final class Block {
     }
 
     /**
-     * Media parse exit (Instagram 453): filters this media, then restores the enclosing
+     * Media parse exit (Instagram 453, 456): filters this media, then restores the enclosing
      * media's flag, so a parent whose {@code injected} field came before its carousel stays
      * flagged. Only ads carry that field, so a flagged child flags its parent too.
      */
