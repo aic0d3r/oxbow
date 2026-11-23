@@ -149,14 +149,26 @@ public final class Config {
     }
 
     /**
-     * Stored per key as "elapsedRealtime|wall clock|duration ms", so it survives restarts and the
+     * Stored per key as "elapsedRealtime|wall clock|duration ms|boot count", so it survives restarts
      * length is fixed when the request is made. No-op if the key is already waiting.
      */
     public static void startCooldown(String key) {
         SharedPreferences prefs = prefs();
         if (prefs == null || prefs.contains(PENDING + key)) return;
         prefs.edit().putString(PENDING + key, SystemClock.elapsedRealtime() + "|" + System.currentTimeMillis()
-                + "|" + getCooldownHours() * 3_600_000L).apply();
+                + "|" + getCooldownHours() * 3_600_000L + "|" + bootCount()).apply();
+    }
+
+    /** Boots since the device was made, or -1 when Android won't say (it needs API 24). */
+    private static int bootCount() {
+        Context context = getAppContext();
+        if (context == null) return -1;
+        try {
+            return android.provider.Settings.Global.getInt(context.getContentResolver(),
+                    android.provider.Settings.Global.BOOT_COUNT);
+        } catch (Throwable t) {
+            return -1;
+        }
     }
 
     public static void cancelCooldown(String key) {
@@ -164,13 +176,15 @@ public final class Config {
         if (prefs != null) prefs.edit().remove(PENDING + key).apply();
     }
 
-    /** Keys with a pending request, in a stable order. */
+    /** Keys with a pending request, in a stable order; a lapsed one is dropped on the way. */
     public static java.util.List<String> pendingKeys() {
         java.util.List<String> keys = new java.util.ArrayList<>();
         SharedPreferences prefs = prefs();
         if (prefs != null) {
             for (String k : prefs.getAll().keySet()) {
-                if (k.startsWith(PENDING)) keys.add(k.substring(PENDING.length()));
+                if (k.startsWith(PENDING) && cooldownLeft(k.substring(PENDING.length())) >= 0) {
+                    keys.add(k.substring(PENDING.length()));
+                }
             }
         }
         java.util.Collections.sort(keys);
@@ -178,20 +192,39 @@ public final class Config {
     }
 
     /**
-     * Milliseconds left for a pending key (0 = ready), or -1 when none is pending. Uses
-     * elapsedRealtime, which the system clock can't move. shortcut: it restarts at a reboot, so
-     * then the wall clock decides and setting it forward skips the wait; compare the boot count to close that.
+     * Milliseconds left for a pending key (0 = ready), or -1 when none is pending or the request
+     * lapsed: a ready one stays applicable for as long as its wait was, and is then dropped.
      */
     public static long cooldownLeft(String key) {
         SharedPreferences prefs = prefs();
         String stored = prefs == null ? null : prefs.getString(PENDING + key, null);
         if (stored == null) return -1;
+        long left = cooldownLeft(stored, SystemClock.elapsedRealtime(), System.currentTimeMillis(), bootCount());
+        if (left < 0 && prefs != null) prefs.edit().remove(PENDING + key).apply();
+        return left;
+    }
+
+    /**
+     * {@link #cooldownLeft(String)} over one stored entry, clocks passed in so it runs on a plain JVM.
+     * Within the boot the request was made in, elapsedRealtime alone counts the wait. shortcut:
+     * across a reboot only the wall clock spans it, so setting that forward skips the wait; the
+     * boot count is what stops the restarted elapsed clock from un-counting the wait. Entries from
+     * before the boot count was stored keep that older three-field heuristic.
+     */
+    static long cooldownLeft(String stored, long elapsed, long wall, int boot) {
         try {
             String[] p = stored.split("\\|");
-            long elapsed = SystemClock.elapsedRealtime();
-            long passed = elapsed >= Long.parseLong(p[0]) ? elapsed - Long.parseLong(p[0])
-                    : Math.max(0, System.currentTimeMillis() - Long.parseLong(p[1]));
-            return Math.max(0, Long.parseLong(p[2]) - passed);
+            long sinceBoot = Long.parseLong(p[0]);
+            long started = Long.parseLong(p[1]);
+            long duration = Long.parseLong(p[2]);
+            long passed;
+            if (p.length > 3 && boot >= 0) {
+                passed = Integer.parseInt(p[3]) == boot ? elapsed - sinceBoot : Math.max(0, wall - started);
+            } else {
+                passed = elapsed >= sinceBoot ? elapsed - sinceBoot : Math.max(0, wall - started);
+            }
+            if (passed >= duration * 2) return -1; // lapsed: it was ready for as long as its wait was
+            return Math.max(0, duration - passed);
         } catch (RuntimeException e) {
             return Integer.MAX_VALUE; // unreadable: never ready, can still be cancelled
         }
