@@ -436,11 +436,11 @@ public final class Config {
 
     /**
      * Long-pressing Home or Messages opens the settings, so at least one of them must stay
-     * in the bar: true when this change would hide the last one.
+     * in the bar: true when this change would hide the last one whose button this window has.
      */
     public static boolean wouldLockOutSettings(String key, boolean value) {
         if (value) return false;
-        if ("nav_show_home".equals(key)) return !isNavTabShown("nav_show_direct");
+        if ("nav_show_home".equals(key)) return !isNavTabShown("nav_show_direct") || !HomeTabWatcher.hasDirectTab();
         if ("nav_show_direct".equals(key)) return !isNavTabShown("nav_show_home");
         return false;
     }
