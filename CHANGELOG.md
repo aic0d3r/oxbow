@@ -4,6 +4,13 @@ All notable changes to Oxbow are documented in this file. Oxbow is a fork of
 [FeurStagram](https://github.com/jean-voila/FeurStagram); its history before the fork is
 kept below, unchanged.
 
+## Oxbow v456-1-0-56-78, patch bundle 1.3.5
+
+### Fixed
+- **Download media failed to patch on some builds of Instagram 456.1.0.56.78** (the larger
+  APKMirror bundle): the post menu builder is an instance method there, and the patch only looked
+  for a static one. Both shapes are found now.
+
 ## Oxbow v456-1-0-56-78, patch bundle 1.3.4
 
 ### Changed

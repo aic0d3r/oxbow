@@ -208,7 +208,7 @@ you want. Oxbow is the other way round, set up calm on first launch.
 | Tracker-free links | No | Yes | Yes | **Yes** |
 | Comments off | No | Yes | Yes | **Yes** |
 | Patch Instagram yourself in Morphe Manager | No, APKs only | Yes, `patches-3.11.1.mpp` | Yes, patch source | **Yes**, patch source and `.mpp` in every release |
-| Latest Instagram supported | 455.0 | 452.1, pre-release (447.0 stable) | 454.0 | **456.1** |
+| Latest Instagram supported | 456.0 | 456.0, pre-release (452.1 stable) | 456.0 | **456.1** |
 
 *Compared from each project's README, patch list and releases in November 2026. Spot an error? [Open an
 issue](https://github.com/aic0d3r/oxbow/issues/new/choose).*

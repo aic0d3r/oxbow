@@ -57,7 +57,8 @@ private fun Method.addsNativeDownloadRow(): Boolean {
 // method that holds that call, which is why it is matched by it.
 internal object PostOptionsBuilderFingerprint : Fingerprint(
     returnType = "Ljava/lang/Object;",
-    custom = { method, _ -> AccessFlags.STATIC.isSet(method.accessFlags) && method.addsNativeDownloadRow() },
+    // Not required static: some 456 builds hold it in a lambda's instance invoke().
+    custom = { method, _ -> method.addsNativeDownloadRow() },
 )
 
 // Click handler of the feed post overflow menu: MediaOptionsOverflowHelper.onOptionClicked(Option).
