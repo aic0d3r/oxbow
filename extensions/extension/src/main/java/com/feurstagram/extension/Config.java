@@ -82,16 +82,20 @@ public final class Config {
     }
 
     /**
-     * Toggles the permanent lock can freeze: the content blocks and the
-     * navigation-bar icons. The nav icons are cosmetic, but hiding one is how
-     * people cut off a surface they keep falling back into (the Direct tab's
-     * search behaves like Explore), so leaving them freely re-enabled defeated
-     * the lock — issue #93. "Following feed only" counts too: it is what keeps the
-     * ranked feed away for people who keep the feed itself — issue #150.
+     * Toggles the permanent lock can freeze: the content blocks ({@link #BLOCK_KEYS}), the
+     * navigation-bar icons and "Following feed only". The nav icons are cosmetic, but hiding
+     * one is how people cut off a surface they keep falling back into (the Direct tab's
+     * search behaves like Explore), so leaving them freely re-enabled defeated the lock —
+     * issue #93. "Following feed only" counts too: it is what keeps the ranked feed away for
+     * people who keep the feed itself — issue #150.
      */
     public static boolean isLockable(String key) {
-        return key != null && (key.startsWith("block_") || key.startsWith("nav_show_")
-                || "limit_following_feed".equals(key));
+        if (key == null) return false;
+        if (key.startsWith("nav_show_") || "limit_following_feed".equals(key)) return true;
+        for (String blockKey : BLOCK_KEYS) {
+            if (blockKey.equals(key)) return true;
+        }
+        return false;
     }
 
     /**
@@ -373,6 +377,34 @@ public final class Config {
      */
     public static boolean isStorySwipeUpBlocked() { return getBlocked("block_story_swipe_up", true); }
 
+    /** Every block_* surface toggle, in the settings page's display order. A toggle here is lockable and snapshotted by {@link #captureBaseline()}. */
+    public static final String[] BLOCK_KEYS = {
+            "block_feed", "block_explore", "block_reels", "block_friends_lane", "block_stories",
+            "block_instants", "block_notes", "block_suggested", "block_ads", "block_meta_ai", "block_notifications",
+            "block_comments", "block_endless_scroll", "block_story_swipe_up",
+    };
+
+    /** Whether a surface is hidden, with that key's own default. */
+    public static boolean isSurfaceHidden(String key) {
+        switch (key) {
+            case "block_feed": return isFeedBlocked();
+            case "block_explore": return isExploreBlocked();
+            case "block_reels": return isReelsBlocked();
+            case "block_friends_lane": return isFriendsLaneBlocked();
+            case "block_stories": return isStoriesBlocked();
+            case "block_instants": return isInstantsBlocked();
+            case "block_notes": return isNotesBlocked();
+            case "block_suggested": return isSuggestedBlocked();
+            case "block_ads": return isAdsBlocked();
+            case "block_meta_ai": return isMetaAiBlocked();
+            case "block_notifications": return isNotificationsButtonBlocked();
+            case "block_comments": return isCommentsBlocked();
+            case "block_endless_scroll": return isEndlessScrollBlocked();
+            case "block_story_swipe_up": return isStorySwipeUpBlocked();
+            default: return getBlocked(key, false);
+        }
+    }
+
     public static boolean isFeedBlocked()      { return getBlocked("block_feed", true); }
     public static boolean isExploreBlocked()   { return getBlocked("block_explore", true); }
     public static boolean isReelsBlocked()     { return getBlocked("block_reels", true); }
@@ -482,15 +514,7 @@ public final class Config {
     /** Snapshot every lockable toggle's current value for the permanent lock. */
     public static void captureBaseline() {
         HashMap<String, Boolean> baseline = new HashMap<>();
-        baseline.put("block_feed", isFeedBlocked());
-        baseline.put("block_explore", isExploreBlocked());
-        baseline.put("block_reels", isReelsBlocked());
-        baseline.put("block_friends_lane", isFriendsLaneBlocked());
-        baseline.put("block_stories", isStoriesBlocked());
-        baseline.put("block_instants", isInstantsBlocked());
-        baseline.put("block_notes", isNotesBlocked());
-        baseline.put("block_suggested", isSuggestedBlocked());
-        baseline.put("block_ads", isAdsBlocked());
+        for (String key : BLOCK_KEYS) baseline.put(key, isSurfaceHidden(key));
         baseline.put("limit_following_feed", isFollowingFeedOnly());
         for (String key : NAV_KEYS) {
             baseline.put(key, getBlocked(key, navDefault(key)));
@@ -557,33 +581,6 @@ public final class Config {
         SharedPreferences prefs = prefs();
         if (prefs == null || value == null) return;
         prefs.edit().putString("last_seen_version", value).apply();
-    }
-
-    /**
-     * The package {@code lastUpdateTime} the "follow the official account" card was
-     * last shown for, or 0 if never. A different value on launch means the app was
-     * installed or updated since, so the card is due again.
-     */
-    public static long getFollowPromptShownFor() {
-        SharedPreferences prefs = prefs();
-        return prefs == null ? 0L : prefs.getLong("follow_prompt_update_time", 0L);
-    }
-
-    public static void setFollowPromptShownFor(long updateTime) {
-        SharedPreferences prefs = prefs();
-        if (prefs == null) return;
-        prefs.edit().putLong("follow_prompt_update_time", updateTime).apply();
-    }
-
-    /** A follow-button click is an installation-wide choice, independent of updates. */
-    public static boolean hasFollowedOfficialAccount() {
-        return getBlocked("official_account_follow_clicked", false);
-    }
-
-    public static void rememberOfficialAccountFollow() {
-        SharedPreferences prefs = prefs();
-        // Persist before opening the deep link, which may immediately stop this activity.
-        if (prefs != null) prefs.edit().putBoolean("official_account_follow_clicked", true).commit();
     }
 
     public static void setNeedsRestart() { sNeedsRestart = true; }
