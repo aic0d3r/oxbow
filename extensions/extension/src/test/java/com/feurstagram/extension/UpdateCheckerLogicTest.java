@@ -91,6 +91,9 @@ public class UpdateCheckerLogicTest {
                 "Oxbow for Instagram 456.1.0.56.78 (patch bundle 1.3.4). Earlier bundles: see below."));
         assertNull(UpdateChecker.extractBundleVersion("patch bundle coming soon"));
         assertNull(UpdateChecker.extractBundleVersion(null));
+        // A changelog line that mentions an older bundle must not win over the summary line after it.
+        assertEquals("1.3.4", UpdateChecker.extractBundleVersion(
+                "Fixes a crash since patch bundle 1.3.2.\n\n---\nOxbow for Instagram 456.1.0.56.78 (patch bundle 1.3.4)."));
     }
 
     @Test

@@ -95,7 +95,6 @@ public final class Settings {
      */
     public static final int ERROR = 0xFFFFFFFF;
     public static final int ON_ERROR = 0xFF101010;
-    public static final int DIVIDER = 0xFF2A2A2A;
     public static final int RIPPLE = 0x26FFFFFF;
 
     // --- Shape: the M3 Expressive corner scale --------------------------------
@@ -1704,13 +1703,5 @@ public final class Settings {
                 ? ripple(RIPPLE, roundedRect(bgColor, CORNER_FULL, context))
                 : ripple(RIPPLE, roundedRect(Color.TRANSPARENT, CORNER_FULL, context)));
         return button;
-    }
-
-    public static View makeDivider(Context context, int color) {
-        View divider = new View(context);
-        divider.setBackgroundColor(color);
-        divider.setLayoutParams(new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, dp(context, 1)));
-        return divider;
     }
 }

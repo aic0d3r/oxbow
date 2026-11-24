@@ -75,12 +75,18 @@ public final class Hiders {
         HiddenTabSwipeSkipper.install(root);
     }
 
+    /** Resource ids by name; they never change in a process, and a lookup costs on every layout pass. */
+    private static final java.util.HashMap<String, Integer> IDS = new java.util.HashMap<>();
+
     static int resolveId(Context context, String name) {
+        Integer cached = IDS.get(name);
+        if (cached != null) return cached;
         Resources resources = context.getResources();
         int id = resources.getIdentifier(name, "id", context.getPackageName());
         if (id == 0) {
             id = resources.getIdentifier(name, "id", "com.instagram.android");
         }
+        IDS.put(name, id);
         return id;
     }
 

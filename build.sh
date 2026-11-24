@@ -173,11 +173,13 @@ if [ "$SIGN_WITH_APKSIGNER" -eq 1 ]; then
     # Force v1+v2+v3 so the signature is accepted across the whole user base's
     # devices and matches the schemes prior releases shipped; v4 (the .idsig
     # sidecar) is only useful for adb incremental install, so leave it off.
+    # Passwords go through the environment: the command line is readable by every other process.
+    export FEURSTAGRAM_KEY_PASS="${FEURSTAGRAM_KEY_PASS:-$FEURSTAGRAM_KEYSTORE_PASS}"
     "$APKSIGNER" sign \
         --ks "$KEYSTORE" \
         --ks-key-alias "$KEY_ALIAS" \
-        --ks-pass "pass:$FEURSTAGRAM_KEYSTORE_PASS" \
-        --key-pass "pass:${FEURSTAGRAM_KEY_PASS:-$FEURSTAGRAM_KEYSTORE_PASS}" \
+        --ks-pass env:FEURSTAGRAM_KEYSTORE_PASS \
+        --key-pass env:FEURSTAGRAM_KEY_PASS \
         --v1-signing-enabled true \
         --v2-signing-enabled true \
         --v3-signing-enabled true \

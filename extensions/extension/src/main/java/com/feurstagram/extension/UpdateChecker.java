@@ -24,6 +24,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.SystemClock;
 import android.util.TypedValue;
 import android.util.Log;
 import android.view.Gravity;
@@ -161,9 +162,19 @@ public final class UpdateChecker implements Runnable {
         checkAutomatically(activity);
     }
 
+    /** Automatic checks ask GitHub at most this often: its API answers 60 requests an hour per address. */
+    private static final long AUTO_CHECK_MIN_INTERVAL_MS = 3 * 60 * 60_000L;
+    private static long lastAutoCheckMs;
+
     private static void checkAutomatically(Activity activity) {
         if (!isOfficialBuild(activity)) return; // patched by the user: Morphe Manager updates it
-        if (!Config.isAutoUpdateEnabled() || !automaticCheckRunning.compareAndSet(false, true)) return;
+        if (!Config.isAutoUpdateEnabled()) return;
+        // Every return to the app would otherwise ask again, and GitHub then goes silent without
+        // a word; once per process every few hours is plenty.
+        long now = SystemClock.elapsedRealtime();
+        if (now - lastAutoCheckMs < AUTO_CHECK_MIN_INTERVAL_MS) return;
+        lastAutoCheckMs = now;
+        if (!automaticCheckRunning.compareAndSet(false, true)) return;
         if (DebugBridge.isNetworkTraceEnabled()) Log.i("FeurUpdate", "automatic check started");
         new Thread(new UpdateChecker(activity, false), "FeurStagram-update-check").start();
     }
@@ -439,15 +450,18 @@ public final class UpdateChecker implements Runnable {
      */
     static String extractBundleVersion(String body) {
         if (body == null) return null;
+        // The notes end with the summary line that names this release's bundle; a changelog line
+        // such as "since patch bundle 1.3.2" comes before it, so the last mention is the one.
+        String found = null;
         String marker = "patch bundle ";
         for (int at = body.indexOf(marker); at >= 0; at = body.indexOf(marker, at + 1)) {
             int start = at + marker.length();
             int end = start;
             while (end < body.length() && (Character.isDigit(body.charAt(end)) || body.charAt(end) == '.')) end++;
             String value = body.substring(start, end);
-            if (value.matches("\\d+(\\.\\d+)*")) return value;
+            if (value.matches("\\d+(\\.\\d+)*")) found = value;
         }
-        return null;
+        return found;
     }
 
     /** "v434-0-0-44-74" -> "434.0.0.44.74" so it matches the installed versionName. */
@@ -628,10 +642,6 @@ public final class UpdateChecker implements Runnable {
     }
 
     // --- "Update available" page ----------------------------------------------
-
-    private static void showPrompt(Context context, Release release, String installed) {
-        showPrompt(context, release, installed, null);
-    }
 
     /**
      * @param bundle the release's patch bundle version when only that is new (same Instagram
