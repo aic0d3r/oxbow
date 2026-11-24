@@ -203,11 +203,7 @@ public final class CacheCleaner implements Runnable {
         if (children == null) return;
         for (File child : children) {
             if (!child.isDirectory()) continue; // loose files often hold session data
-            String name = child.getName().toLowerCase(Locale.ROOT);
-            if (looksLikeAuth(name)) continue;
-            if (looksLikeMediaCache(name)) {
-                deleteRecursive(child);
-            }
+            if (isMediaCache(child.getName())) deleteRecursive(child);
         }
     }
 
@@ -215,6 +211,13 @@ public final class CacheCleaner implements Runnable {
             "auth", "session", "login", "token", "account", "cred",
             "cookie", "secure", "profile", "pref", "mqtt", "device", "user",
     };
+
+    /**
+     * Folder names that sound like media but hold what the user made themselves: reel drafts
+     * (files/pending_media_images, clips_draft_asset — Instagram logs "draft file missing on
+     * device" without them) and the unedited originals of edited posts (original_images).
+     */
+    private static final String[] OWN_WORK_MARKERS = {"draft", "pending_media", "original"};
 
     private static final String[] MEDIA_MARKERS = {
             "cache", "video", "media", "exo", "clip", "reel", "story",
@@ -228,11 +231,21 @@ public final class CacheCleaner implements Runnable {
         return false;
     }
 
-    private static boolean looksLikeMediaCache(String lower) {
-        for (String marker : MEDIA_MARKERS) {
+    /** Whether a files/ subfolder with this name is a media cache to wipe when a setting changes. */
+    static boolean isMediaCache(String name) {
+        String lower = name.toLowerCase(Locale.ROOT);
+        return !looksLikeAuth(lower) && !containsAny(lower, OWN_WORK_MARKERS) && looksLikeMediaCache(lower);
+    }
+
+    private static boolean containsAny(String lower, String[] markers) {
+        for (String marker : markers) {
             if (lower.contains(marker)) return true;
         }
         return false;
+    }
+
+    private static boolean looksLikeMediaCache(String lower) {
+        return containsAny(lower, MEDIA_MARKERS);
     }
 
     private static void deleteRecursive(File file) {

@@ -6,7 +6,9 @@
 #
 # Builds the patch bundle (.mpp) from the Gradle project, then applies it to the
 # given Instagram APK with the local Morphe CLI, producing ./oxbow.apk (./oxbow-clone.apk with --clone).
-#   --clone     install side-by-side as a separate package (com.instagram.android.feurstagram)
+#   --clone     install side-by-side as a separate package (com.instagram.android.oxbow;
+#               FEURSTAGRAM_CLONE_PACKAGE picks another name, e.g. to test a build next to one
+#               whose signing key differs)
 #   --install   install the result on the connected ADB device
 #   --debug     enable the Debug bridge patch: the settings become drivable over
 #               ADB broadcasts (see extensions/.../DebugBridge.java). Never ship it.
@@ -143,7 +145,7 @@ echo "==> [2/3] Applying to $(basename "$APK")"
 REPORT="$DIR/build/patch-report.json"
 mkdir -p "$DIR/build"
 ARGS=(-jar "$CLI" patch -p "$MPP" -f -r "$REPORT" -o "$OUT")
-[ "$CLONE" -eq 1 ] && ARGS+=(-e "Clone")
+[ "$CLONE" -eq 1 ] && ARGS+=(-e "Clone" -O "packageName=${FEURSTAGRAM_CLONE_PACKAGE:-com.instagram.android.oxbow}")
 [ "$DEBUG" -eq 1 ] && ARGS+=(-e "Debug bridge")
 
 # With a keystore password, defer signing to apksigner (the CLI can't read the
