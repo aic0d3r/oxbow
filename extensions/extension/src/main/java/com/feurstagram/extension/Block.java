@@ -271,7 +271,7 @@ public final class Block {
 
     /**
      * Story-tray hook: called with every entry Instagram's tray parser builds.
-     * Returns null for a suggested account ({@code reel_type} "suggested_user")
+     * Returns null for a suggested account ({@code reel_type} "suggested_user" or "suggested_user_reel")
      * when suggestions are blocked; the tray loop already skips entries that
      * parse to null, so the suggestion never reaches the tray. These come inside
      * the tray response itself, so the network block cannot catch them.
@@ -282,7 +282,9 @@ public final class Block {
             String getter = trayEntryTypeGetter();
             if (getter.isEmpty()) return entry;
             Object type = entry.getClass().getMethod(getter).invoke(entry);
-            boolean drop = "suggested_user".equals(String.valueOf(type));
+            // 456 adds "suggested_user_reel": a suggested account that has a story up.
+            String t = String.valueOf(type);
+            boolean drop = "suggested_user".equals(t) || "suggested_user_reel".equals(t);
             if (DebugBridge.isNetworkTraceEnabled()) {
                 Log.i("FeurTray", (drop ? "drop " : "keep ") + type);
             }

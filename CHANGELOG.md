@@ -21,6 +21,9 @@ kept below, unchanged.
   capturable too.
 
 ### Fixed
+- **Suggested accounts with a story stay out of the story tray.** Instagram 456 marks them with
+  a new type the tray filter did not know, so they showed up even with *Suggested accounts*
+  blocked.
 - **A cooldown request survives a restart.** A reboot used to reset the count: once the phone had
   been on longer than at the time of the request, the wait jumped back to almost its full length,
   and with regular restarts a 72-hour wait could never end.
